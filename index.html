@@ -215,6 +215,21 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
   .ev{grid-template-columns:1fr 1fr!important}
 }
 @media print{ .eqbar{display:none!important} }
+/* 造型日報との連動 */
+.zkdays{margin-top:12px;border:2px solid #607d8b;border-radius:12px;padding:10px 12px;background:#f7f9fa}
+.zhead{margin-bottom:6px}
+.zcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.zt{font-weight:bold;border-bottom:2px solid #cfd8dc;margin-bottom:6px;padding-bottom:2px}
+.zk,.zl{display:block;width:100%;text-align:left;margin-bottom:6px;min-height:50px;padding:6px 10px;line-height:1.3}
+.zk b,.zl b{font-size:17px}.zk small,.zl small{display:block;font-size:13px;color:var(--sub)}
+.zk.on,.zl.on{background:#e3efff;border-color:#1565c0}
+.zkhin:empty{display:none}
+.zlots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px}
+.zl{margin:0}
+.zwarn{margin-top:6px;padding:8px 12px;border-radius:10px;background:#ffebee;color:#b00020;font-weight:bold;font-size:15px}
+.ampwarn{margin-top:10px;padding:10px 14px;border-radius:10px;background:#ffebee;border:3px solid #d50000;color:#b00020;font-weight:bold;font-size:18px;animation:rblink 1s ease-in-out infinite alternate}
+.hinwrap input::placeholder{font-size:15px;font-weight:normal;color:#7b8794}
+@media (max-width:900px){ .zcols{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -249,6 +264,7 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
       <strong>サビ発生品を再ショットの際は、砂付き（ショット前）の製品orセキと一緒に行うこと（欠け対策）</strong>
     </div>
     <div class="specbox" id="specBox"></div>
+    <div class="zkdays" id="zkDays"></div>
     <div class="small" id="masterStat" style="margin-top:8px"></div>
     <div class="docinfo">
       <div>作成 <b>2025/2/6</b></div><div>作成 <b>土橋</b></div><div>照査 <b>田代皓</b></div><div>承認 <b>田代勝</b></div>
@@ -276,6 +292,7 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
       <div class="f"><span class="small">ロット <span class="id">Lot</span></span>
         <div class="lotpick"><input type="date" id="lotDate" aria-label="ロットの日付"><b class="lotv" id="lotV">－</b></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="lprev" id="btnLotPrev" hidden></button><button class="lprev" id="btnLotClr">消す</button></div></div>
+      <div class="f wide zkhin" id="zkHin"></div>
       <label class="f">パレットNo <span class="id">No. palet</span><input data-k="pal" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint">同じ品番・ロットが続くと自動で +1</span></label>
       <div class="f stc"><span class="small">開始時刻 <span class="id">Waktu mulai</span></span><div class="tcell"><input type="time" data-k="st"><button id="btnNow">今</button></div></div>
       <label class="f">初（分） <span class="id">Pertama</span><input data-k="t1" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT1"></span></label>
@@ -285,6 +302,7 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
       <label class="f refill" id="refillBox">補充後 (A) <span class="id">Setelah penambahan</span><input data-k="ampR" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hAmpR"></span></label>
       <label class="f">作業者 <span class="id">Pekerja</span><select id="wSel" class="wsel"></select></label>
     </div>
+    <div class="ampwarn" id="ampWarn" hidden>⚠ 電流が上限を超えています。ショット玉を追加しないでください！ <span class="id">Arus melebihi batas atas. Jangan menambah bola!</span></div>
     <div class="rownote" id="rowNote" hidden></div>
     <div class="small" style="margin-top:8px">数字の欄をタップすると数字のキーが出ます。初か電流を入れると、開始時刻（空欄のとき）と作業者（前の行と同じ）が自動で入ります。補充後を入れると、ショット玉投入回数が自動で1回ふえます。</div>
     <div class="nav">
@@ -457,14 +475,20 @@ function jT1(r){ return inR(r.t1,timeSpec(r)); }
 function jRe(r,f){ if(num(r[f])==null) return ""; return reApplies(r)?inR(r[f],SPEC[state.equip].re):"warn"; }
 function jAmp(r){ return inR(r.amp,SPEC[state.equip].amp); }
 function jAmpR(r){ return inR(r.ampR,SPEC[state.equip].amp); }
-function needRefill(r){ return jAmp(r)==="ng"; }
-function rowNg(r){ return [jT1(r),jRe(r,"t2"),jRe(r,"t3")].includes("ng")||(jAmp(r)==="ng"&&jAmpR(r)!=="ok"); }
+function ampLow(r){ const n=num(r.amp); return n!=null&&n<SPEC[state.equip].amp[0]; }
+function ampHigh(r){ const n=num(r.amp); return n!=null&&n>SPEC[state.equip].amp[1]; }
+// 電流が下限より低い → ショット玉を補充 ／ 上限を超えている → 玉を追加しない
+function needRefill(r){ return ampLow(r); }
+function rowNg(r){ return [jT1(r),jRe(r,"t2"),jRe(r,"t3")].includes("ng")||(ampLow(r)&&jAmpR(r)!=="ok")||ampHigh(r); }
 function rowWarn(r){ return [jRe(r,"t2"),jRe(r,"t3")].includes("warn")||(needRefill(r)&&jAmpR(r)==="ok"); }
 function rowDone(r){ return !!(r.hin&&r.st&&r.t1&&r.amp); }
 function noteOf(r){ const n=[]; if(jT1(r)==="ng") n.push("投射時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="ng")) n.push("再ショット時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="warn")) n.push("再ショット規格外の品番（上長に報告）");
-  if(needRefill(r)) n.push(r.ampR?(jAmpR(r)==="ok"?"玉補充 → 規格内":"玉補充後も規格外"):"電流 規格外（玉補充）"); return n.join(" / "); }
+  if(needRefill(r)) n.push(r.ampR?(jAmpR(r)==="ok"?"玉補充 → 規格内":"玉補充後も規格外"):"電流 下限より低い（玉補充）");
+  if(ampHigh(r)) n.push("電流 上限超え（ショット玉を追加しない）"); return n.join(" / "); }
 function talley(n){ n=Math.max(0,n|0); return "正".repeat(Math.floor(n/5))+["","一","丅","下","止"][n%5]; }
-function lotFromDate(v){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||""); return m?`${+m[2]}/${+m[3]}`:""; }
+const LOTP=CFG.lotPrefix||"C";
+function lotFromDate(v){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||""); return m?`${LOTP}${m[1].slice(2)}-${+m[2]}-${+m[3]}`:""; }
+function dateFromLot(l){ const m=/^\D*(\d{2})-(\d{1,2})-(\d{1,2})/.exec(l||""); return m?`20${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`:""; }
 function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
 function prevRow(i){ for(let j=i-1;j>=0;j--){ if(rowHas(state.rows[j])) return state.rows[j]; } return null; }
 function prevWith(i,k){ for(let j=i-1;j>=0;j--){ const v=state.rows[j][k]; if(v!==""&&v!=null) return state.rows[j]; } return null; }
@@ -473,7 +497,10 @@ function workerNames(){ const base=(typeof Crew!=="undefined"&&Crew.list())||WOR
 // パレットNo：前の行と同じ品番・ロットなら +1、ちがえば 1
 function autoPal(i){ const r=state.rows[i]; if(r.pal!==""||!r.hin||isSeki(r.hin)) return; const p=prevWith(i,"hin");
   if(p&&normHin(p.hin)===normHin(r.hin)&&(p.lot||"")===(r.lot||"")&&num(p.pal)!=null) r.pal=String(num(p.pal)+1); else if(r.lot) r.pal="1"; }
-function rowStart(i){ const r=state.rows[i]; if(!r.worker){ const w=lastWorker(i); if(w) r.worker=w; } }
+// 前の行の品番（またはセキ）を引き継ぐ。種類が変わったときは手で打ちかえる
+function carryFrom(i){ const p=prevWith(i,"hin"); return p&&(state.equip!=="エプロンショット"||!isSeki(p.hin))?p:null; }
+function rowStart(i){ const r=state.rows[i]; if(!r.hin){ const p=carryFrom(i); if(p){ r.hin=p.hin; r.name=p.name; r.ok=p.ok; r.km=p.km; r.kubun=p.kubun; } }
+  if(!r.worker){ const w=lastWorker(i); if(w) r.worker=w; } }
 
 // ---- 描画 ----
 function renderHeader(){ $("date").value=state.date; $("confirmBy").value=state.confirmBy; renderEquip(); renderSpec(); renderBalls(); renderMasterStat(); }
@@ -498,8 +525,11 @@ function renderEntry(){
   $("rowTitle").textContent="No. "+(sel+1);
   const E=$("entryCard");
   E.querySelector('[data-k="hin"]').value=r.hin; E.querySelector('[data-k="name"]').value=r.name;
+  const cp=!r.hin&&carryFrom(sel); E.querySelector('[data-k="hin"]').placeholder=cp?`前回：${isSeki(cp.hin)?"セキ":cp.hin}（入力を始めると引き継ぎ）`:"数文字打つと候補が出ます";
+  E.querySelector('[data-k="name"]').placeholder=cp?(cp.name||""):"マスターから自動"; if(typeof ZLink!=="undefined") ZLink.renderHin();
   $("hinStat").className="hint "+(r.hin&&!r.ok&&!isSeki(r.hin)&&MIDX.length?"warn":""); $("hinStat").textContent=r.hin?(isSeki(r.hin)?"セキ（堰）":(r.ok?"✓ マスター登録あり":(MIDX.length?"マスターにない品番です（品名を手で入れてください）":""))):"";
-  $("kubunBtns").innerHTML=KUBUN.map(x=>`<button data-kb="${x[0]}" class="${k===x[0]?"on":""}">${x[1]}<small>${S.time[x[0]]?rng(S.time[x[0]])+"分":"規格なし"}</small></button>`).join("");
+  $("btnSeki").hidden=state.equip==="エプロンショット";
+  $("kubunBtns").innerHTML=KUBUN.filter(x=>S.time[x[0]]||k===x[0]).map(x=>`<button data-kb="${x[0]}" class="${k===x[0]?"on":""}">${x[1]}<small>${S.time[x[0]]?rng(S.time[x[0]])+"分":"規格なし"}</small></button>`).join("");
   $("kubunNote").textContent=k?(r.km?"手で選択（もう一度押すと自動に戻る）":"品名から自動"):"品番を入れると自動で選ばれます";
   const lp=prevWith(sel,"lot");
   $("lotV").textContent=r.lot||"－"; $("lotV").classList.toggle("empty",!r.lot); $("btnLotPrev").hidden=!lp||lp.lot===r.lot; $("btnLotPrev").textContent=lp?`前と同じ（${lp.lot}）`:"";
@@ -511,8 +541,9 @@ function renderEntry(){
   const reTxt=re?`再ショット規格 ${rng(S.re)} 分`:`再ショット規格外の品番（${S.reNote}）→ 上長に報告`;
   $("hT2").textContent=reTxt; $("hT2").className="hint "+(r.t2&&!re?"warn":(jRe(r,"t2")==="ng"?"ng":""));
   $("hT3").textContent=reTxt; $("hT3").className="hint "+(r.t3&&!re?"warn":(jRe(r,"t3")==="ng"?"ng":""));
-  $("hAmp").textContent=`規格 ${rng(S.amp)} A`; $("hAmp").className="hint "+(jAmp(r)==="ng"?"ng":"");
-  const nr=needRefill(r); $("refillBox").classList.toggle("need",nr&&!r.ampR); $("hAmpR").textContent=nr?(r.ampR?(jAmpR(r)==="ok"?"✓ 補充後 規格内":"⚠ 補充後も規格外 → 上長に報告"):"⚠ 電流が規格外です。ショット玉を補充して、補充後の電流を入れてください"):"電流が規格外のときだけ入れます";
+  $("hAmp").textContent=ampHigh(r)?`⚠ 上限 ${S.amp[1]}A を超えています。ショット玉を追加しないでください`:(ampLow(r)?`⚠ 下限 ${S.amp[0]}A より低い → ショット玉を補充`:`規格 ${rng(S.amp)} A`); $("hAmp").className="hint "+(jAmp(r)==="ng"?"ng":"");
+  $("ampWarn").hidden=!ampHigh(r);
+  const nr=needRefill(r); $("refillBox").classList.toggle("need",nr&&!r.ampR); $("hAmpR").textContent=nr?(r.ampR?(jAmpR(r)==="ok"?"✓ 補充後 規格内":"⚠ 補充後も規格外 → 上長に報告"):"⚠ 電流が規格外です。ショット玉を補充して、補充後の電流を入れてください"):(ampHigh(r)?"上限を超えているときは補充しません（玉を追加しない）":"電流が下限より低いときだけ入れます");
   $("hAmpR").className="hint "+(nr&&!r.ampR?"ng":(r.ampR&&jAmpR(r)==="ng"?"ng":""));
   renderWorkerSel();
   $("rowNote").textContent=noteOf(r); $("rowNote").hidden=!noteOf(r);
@@ -540,7 +571,7 @@ function renderEvents(){
      <button data-del="${i}" style="align-self:end">削除</button>
    </div>`).join(""); }
 function renderWorkers(){ $("workerList").innerHTML=workerNames().map(w=>`<option value="${esc(w)}">`).join(""); }
-function renderAll(){ renderHeader(); renderChips(); renderEntry(); renderTable(); renderEvents(); renderWorkers(); }
+function renderAll(){ renderHeader(); renderChips(); renderEntry(); renderTable(); renderEvents(); renderWorkers(); if(typeof ZLink!=="undefined") ZLink.renderDays(); }
 function refreshLight(){ renderChips(); renderTable(); renderEquip(); }
 function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
 function askConfirm(msg,yes,no){ return new Promise(res=>{ const d=$("dlgConfirm"); $("cfMsg").textContent=msg; $("cfYes").textContent=yes||"OK"; $("cfNo").textContent=no||"キャンセル";
@@ -580,7 +611,7 @@ $("btnPrev").onclick=()=>selectRow(sel-1);
 $("btnNext").onclick=()=>{ selectRow(sel+1); $("entryCard").scrollIntoView({behavior:"smooth",block:"start"}); };
 $("btnClearRow").onclick=async()=>{ if(VIEW) return; if(!rowHas(state.rows[sel])) return; if(!await askConfirm(`No.${sel+1} の入力を消しますか？`,"消す")) return; state.rows[sel]=blankRow(); touchRow(sel); renderEntry(); refreshLight(); };
 $("confirmBy").addEventListener("input",e=>{ if(VIEW) return; state.confirmBy=e.target.value; touchHeader(); });
-$("ballPlus").onclick=()=>{ if(VIEW) return; state.balls++; touchHeader(); renderBalls(); };
+$("ballPlus").onclick=async()=>{ if(VIEW) return; const r=state.rows[sel]; if(ampHigh(r)&&!await askConfirm(`No.${sel+1} の電流 ${r.amp}A は上限を超えています。\nショット玉を追加しないでください。それでも回数をふやしますか？`,"ふやす","やめる")) return; state.balls++; touchHeader(); renderBalls(); };
 $("ballMinus").onclick=()=>{ if(VIEW||state.balls<=0) return; state.balls--; touchHeader(); renderBalls(); };
 // 品番（マスターから候補）
 let sugg={list:[],act:0};
@@ -617,13 +648,14 @@ $("entryCard").addEventListener("click",e=>{ const pin=e.target.closest("[data-p
   if(f==="t1"){ const a=timeSpec(r); sub=a?`規格 ${rng(a)} 分（${KL[kubunOf(r)]}）`:"規格なし"; }
   if(f==="t2"||f==="t3") sub=reApplies(r)?`再ショット規格 ${rng(S.re)} 分`:`再ショット規格外の品番（${S.reNote}）→ 上長に報告`;
   if(f==="amp"){ sub=`規格 ${rng(S.amp)} A`; const p=prevWith(sel,"amp"); if(p) pre=p.ampR||p.amp; }
-  if(f==="ampR") sub=`規格 ${rng(S.amp)} A（ショット玉を補充したあとの電流）`;
+  if(f==="ampR") sub=ampHigh(r)?`⚠ 電流が上限を超えています。ショット玉は追加しないでください`:`規格 ${rng(S.amp)} A（ショット玉を補充したあとの電流）`;
   if(f==="pal"){ const p=prevWith(sel,"pal"); sub=p?`前の行 ${p.pal}`:""; }
   openPad(`No.${sel+1}　${L[0]}`,sub,r[f],L[2],v=>{ const had=r[f]; r[f]=v;
     if(v!==""){ rowStart(sel); if((f==="t1"||f==="amp")&&!r.st) r.st=nowHM(); }
-    if(f==="ampR"&&v!==""&&!had&&!VIEW){ state.balls++; touchHeader(); renderBalls(); toast("ショット玉投入回数を +1 しました（"+state.balls+"回）"); }
+    if(f==="ampR"&&v!==""&&!had&&!VIEW&&!ampHigh(r)){ state.balls++; touchHeader(); renderBalls(); toast("ショット玉投入回数を +1 しました（"+state.balls+"回）"); }
     touchRow(sel); renderEntry(); refreshLight();
-    if(f==="amp"&&needRefill(r)&&!r.ampR) toast("電流が規格外です。ショット玉を補充して「補充後」を入れてください"); },pre); });
+    if(f==="amp"&&needRefill(r)&&!r.ampR) toast("電流が下限より低いです。ショット玉を補充して「補充後」を入れてください");
+    if(f==="amp"&&ampHigh(r)) askConfirm(`電流 ${r.amp}A は上限 ${SPEC[state.equip].amp[1]}A を超えています。\nショット玉を追加しないでください。\nTidak boleh menambah bola!`,"わかりました","閉じる"); },pre); });
 $("wSel").addEventListener("change",e=>{ if(VIEW) return; const r=state.rows[sel]; let v=e.target.value;
   if(v==="__add"){ v=(prompt("作業者の名前を入れてください / Tulis nama")||"").trim(); if(!v){ renderWorkerSel(); return; } rememberWorker(v); }
   r.worker=v; if(v) LS.set(APP+":lastW",v);
@@ -898,6 +930,57 @@ $("syncStat").onclick=async()=>{ await Sync.flush(); await Sync.pull(); await Ma
 $("btnCfgSave").onclick=()=>{ Sync.setCfg($("cfgUrl").value.trim(),$("cfgToken").value.trim()); $("cfgInfo").textContent="保存しました"; Sync.pull(); };
 $("btnCfgTest").onclick=async()=>{ $("cfgInfo").textContent="確認中…"; $("cfgInfo").textContent=await Sync.test(); };
 
+// ---- 造型日報との連動：この製品はいつ造型したものか／前日・当日に何を造型しているか ----
+const ZLink=(function(){
+  const ZEQ=CFG.zokeiEquips||["1号機","2号機"], DAYS=+CFG.zokeiDays||7, Z_START=8;
+  let D=LS.get(APP+":zkprod",{at:0,list:[]}), busy=false, err="";
+  function zToday(){ const d=new Date(); if(d.getHours()<Z_START) d.setDate(d.getDate()-1); return ymd(d); }
+  function shift(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()+n); return ymd(x); }
+  const mins=hm=>{ const m=/^(\d{1,2}):(\d{2})/.exec(hm||""); if(!m) return 9999; const t=+m[1]*60+(+m[2]); return t<Z_START*60?t+1440:t; };
+  const md=d=>{ const [,m,dd]=d.split("-"); return `${+m}/${+dd}`; };
+  async function get(date,equip){ const c=Master.cfg(); const u=c.url+(c.url.includes("?")?"&":"?")+new URLSearchParams({action:"load",token:c.token,date,equip});
+    const j=await (await fetch(u,{redirect:"follow"})).json(); if(!j.ok) throw new Error(j.error||"error"); return j.items||[]; }
+  async function load(force){ const c=Master.cfg();
+    if(!c.url||busy||navigator.onLine===false){ render(); return; } if(!force&&D.at&&Date.now()-D.at<4*60*1000){ render(); return; }
+    busy=true;
+    try{ const t=zToday(), jobs=[];
+      for(let k=0;k<DAYS;k++){ const d=shift(t,-k); ZEQ.forEach(e=>jobs.push(get(d,e).then(items=>({d,e,items})))); }
+      const res=await Promise.all(jobs), list=[];
+      res.forEach(({d,e,items})=>items.forEach(it=>{ if(it.type!=="row") return; const x=it.raw||{};
+        (x.items||[]).forEach((v,j)=>{ if(!v||!v.hin) return; const tot=(j>0&&v.tot!=null&&v.tot!=="")?v.tot:x.total, k=num(v.koma), tt=num(tot);
+          list.push({d,e,hin:v.hin,n:normHin(v.hin),name:v.name||"",st:x.st||"",en:x.en||"",qty:(k!=null&&tt!=null)?k*Math.max(0,tt-(num(x.unp)||0)):null}); }); }));
+      list.sort((a,b)=>a.d===b.d?(mins(a.st)-mins(b.st)||a.e.localeCompare(b.e)):(a.d<b.d?1:-1));
+      D={at:Date.now(),list,from:shift(t,-(DAYS-1)),to:t}; LS.set(APP+":zkprod",D); err=""; }
+    catch(e){ err=String(e.message||e); }
+    busy=false; render(); }
+  function item(p,act){ return `<button class="zk ${act?"on":""}" data-zh="${esc(p.hin)}" data-zn="${esc(p.name)}" data-zd="${p.d}"><b>${esc(p.hin)}</b> ${esc(p.name)}<small>${esc(p.e)} ${esc(p.st)}${p.en?"〜"+esc(p.en):"〜"}${p.qty!=null?" ・ "+p.qty+"個":""}</small></button>`; }
+  // 前日・当日の造型（ヘッダーの下）
+  function renderDays(){ const box=$("zkDays"); if(!box) return;
+    if(!Master.cfg().url){ box.innerHTML='<div class="small">造型日報と連動していません（設定の「造型日報のURL」）</div>'; return; }
+    const t=zToday(), y=shift(t,-1), at=D.at?new Date(D.at):null;
+    const col=(d,lab)=>{ const L=D.list.filter(p=>p.d===d); return `<div class="zcol"><div class="zt">${lab} <span class="small">${md(d)}</span></div>${L.length?L.map(p=>item(p)).join(""):'<div class="small" style="padding:6px 0">造型の入力なし</div>'}</div>`; };
+    box.innerHTML=`<div class="zhead"><b>造型日報（${ZEQ.join("・")}）で造型した製品</b> <span class="small">${err?`⚠ 読み込めませんでした（${esc(err)}）`:(at?`${at.getHours()}:${String(at.getMinutes()).padStart(2,"0")} 読込`:"読み込み中…")} ・ タップすると選んでいる行に品番とロットが入ります</span></div><div class="zcols">${col(t,"当日")}${col(y,"前日")}</div>`; }
+  // 品番ごとの造型日（ロットの候補）
+  function renderHin(){ const box=$("zkHin"); if(!box) return; const r=state.rows[sel], h=r.hin||((carryFrom(sel)||{}).hin)||"";
+    if(!Master.cfg().url||!h||isSeki(h)){ box.innerHTML=""; return; }
+    const n=normHin(h), L=D.list.filter(p=>p.n===n), seen={}, days=[];
+    L.forEach(p=>{ if(!seen[p.d]){ seen[p.d]=[]; days.push(p.d); } seen[p.d].push(p); });
+    const ld=dateFromLot(r.lot);
+    let warn="";
+    if(!L.length) warn=`⚠ 直近${DAYS}日の造型日報にこの品番がありません。滞留品かもしれません。現品票のロットを確認してください`;
+    else if(r.lot&&ld&&!seen[ld]) warn=(D.from&&ld<D.from)?`※ ${md(ld)} は${DAYS}日より前のため確認できません（現品票のロットを確認）`:`⚠ ロット ${esc(r.lot)} の日（${md(ld)}）にこの品番の造型の記録がありません。現品票を確認してください`;
+    box.innerHTML=`<div class="small">この品番を造型した日（造型日報・直近${DAYS}日）タップでロットに入ります</div><div class="zlots">${days.map(d=>{ const lot=lotFromDate(d), P=seen[d];
+        return `<button class="zl ${r.lot===lot?"on":""}" data-zl="${d}"><b>${lot}</b><small>${P.map(p=>`${esc(p.e)} ${esc(p.st)}${p.en?"〜"+esc(p.en):"〜"}${p.qty!=null?" "+p.qty+"個":""}`).join(" / ")}</small></button>`; }).join("")}</div>${warn?`<div class="zwarn">${warn}</div>`:""}`; }
+  function render(){ renderDays(); renderHin(); }
+  $("zkDays").addEventListener("click",e=>{ const b=e.target.closest("[data-zh]"); if(!b||VIEW) return; const r=state.rows[sel];
+    const m=mFind(b.dataset.zh); r.km=false; setHin(sel,b.dataset.zh,m||null); if(!m){ r.name=b.dataset.zn; if(!r.km) r.kubun=autoKubun(r); }
+    r.lot=lotFromDate(b.dataset.zd); r.pal=""; autoPal(sel); touchRow(sel); renderEntry(); refreshLight(); $("entryCard").scrollIntoView({behavior:"smooth",block:"start"}); toast(`No.${sel+1} に ${b.dataset.zh}・${r.lot} を入れました`); });
+  $("zkHin").addEventListener("click",e=>{ const b=e.target.closest("[data-zl]"); if(!b||VIEW) return; const r=state.rows[sel]; rowStart(sel); r.lot=lotFromDate(b.dataset.zl); autoPal(sel); touchRow(sel); renderEntry(); refreshLight(); });
+  setInterval(()=>{ if(document.visibilityState==="visible") load(false); },5*60*1000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") load(false); });
+  return {load,render,renderHin,renderDays};
+})();
+
 // ---- 作業者の名前（ショット日報の全端末で共通：ショット日報のスプレッドシートに保存）----
 const CREW_KEY="crew:shot";
 function CREW_URL(){ return Sync.getCfg().syncUrl||""; }
@@ -950,7 +1033,7 @@ renderAll();
 // 設備の切りかえボタンを、上に固定されたヘッダーのすぐ下に残す
 { const fit=()=>{ const h=document.querySelector("header.top"); document.documentElement.style.setProperty("--hdrH",(getComputedStyle(h).position==="sticky"?h.offsetHeight:0)+"px"); }; fit(); window.addEventListener("resize",fit); }
 if(VIEW){ $("viewBadge").hidden=false; document.title="ショット日報（閲覧用）"; document.querySelectorAll("#entryCard input,#confirmBy").forEach(el=>el.readOnly=true); }
-Sync.status(); Sync.flush().then(()=>Sync.pull()); Master.load(false); Crew.pull();
+Sync.status(); Sync.flush().then(()=>Sync.pull()); Master.load(false); ZLink.load(true); Crew.pull();
 const EXP={csv:()=>dataRows(), master:()=>Master.load(true), load:(d,q)=>load(d,q), empty:()=>!state.rows.some(rowHas)&&!liveEvents().length, name:()=>fileName()};
 // ---- 自動Excel出力（URL末尾に ?export=開始日..終了日 を付けて開くと、その期間の日報Excelを作って画面に埋め込む）----
 (async function(){
