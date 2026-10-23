@@ -936,7 +936,7 @@ const ZLink=(function(){
   let D=LS.get(APP+":zkprod",{at:0,list:[]}), busy=false, err="";
   function zToday(){ const d=new Date(); if(d.getHours()<Z_START) d.setDate(d.getDate()-1); return ymd(d); }
   function shift(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()+n); return ymd(x); }
-  const mins=hm=>{ const m=/^(\d{1,2}):(\d{2})/.exec(hm||""); if(!m) return 9999; const t=+m[1]*60+(+m[2]); return t<Z_START*60?t+1440:t; };
+  const mins=hm=>{ const m=/^(\d{1,2}):(\d{2})/.exec(hm||""); if(!m) return 9999; const t=+m[1]*60+(+m[2]); return t<7*60?t+1440:t; };
   const md=d=>{ const [,m,dd]=d.split("-"); return `${+m}/${+dd}`; };
   async function get(date,equip){ const c=Master.cfg(); const u=c.url+(c.url.includes("?")?"&":"?")+new URLSearchParams({action:"load",token:c.token,date,equip});
     const j=await (await fetch(u,{redirect:"follow"})).json(); if(!j.ok) throw new Error(j.error||"error"); return j.items||[]; }
