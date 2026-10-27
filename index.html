@@ -226,6 +226,22 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
 .zkhin:empty{display:none}
 .zlots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px}
 .zl{margin:0}
+.rebox{border:2px solid #e65100;border-radius:12px;padding:10px;background:#fff8f0}
+.rebox[hidden]{display:none}
+.rnote{font-size:15px;line-height:1.6;color:#8a3a00;font-weight:bold}
+#mixRes.ok{color:#1b5e20;font-weight:bold}#mixRes.ng{color:#b00020;font-weight:bold;font-size:16px}
+.p2box:empty{display:none}
+.p2box{border:2px solid #6a1b9a;border-radius:12px;padding:10px;background:#faf5ff}
+.p2box .p2h{font-weight:bold;color:#4a148c;margin-bottom:6px}
+.p2w{display:block;width:100%;text-align:left;margin-bottom:6px;min-height:50px;padding:6px 10px;line-height:1.3;border:2px solid #ab47bc;background:#fff;border-radius:10px}
+.p2w small{display:block;color:#5d6778;font-size:13px}
+.p2link{padding:8px 10px;border-radius:10px;background:#ede7f6;line-height:1.6}
+.p2link b.sum{font-size:20px;color:#4a148c}
+.p2tog{width:100%;min-height:54px;font-weight:bold;font-size:17px;border:2px solid #6a1b9a;background:#fff;color:#4a148c;border-radius:10px}
+.p2tog.on{background:#6a1b9a;color:#fff}
+.p2st{margin-top:6px;font-size:15px}
+.p2st.done{color:#1b5e20;font-weight:bold}.p2st.wait{color:#8a5a00;font-weight:bold}
+.p2t{display:inline-block;font-size:11px;font-weight:bold;padding:1px 6px;border-radius:999px;background:#ede7f6;color:#4a148c;margin-left:4px}
 .zwarn{margin-top:6px;padding:8px 12px;border-radius:10px;background:#ffebee;color:#b00020;font-weight:bold;font-size:15px}
 .ampwarn{margin-top:10px;padding:10px 14px;border-radius:10px;background:#ffebee;border:3px solid #d50000;color:#b00020;font-weight:bold;font-size:18px;animation:rblink 1s ease-in-out infinite alternate}
 .hinwrap input::placeholder{font-size:15px;font-weight:normal;color:#7b8794}
@@ -289,10 +305,14 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
         <div class="hint" id="hinStat"></div></div>
       <label class="f">品名 <span class="id">Nama produk</span><input data-k="name" placeholder="マスターから自動"></label>
       <div class="f wide"><span class="small">区分（投射時間の規格） <span class="id">Kategori</span> <span id="kubunNote" class="small" style="color:#2e7d32"></span></span><div class="kubun" id="kubunBtns"></div></div>
+      <div class="f wide rebox" id="reBox" hidden><div class="rnote">▲7 製品の砂付き具合を確認しながら、かけ過ぎに注意すること<br>▲5 サビ発生品を再ショットするときは、砂付き（ショット前）の製品かセキと一緒に行うこと（欠け発生対策）</div>
+        <label class="f" style="margin-top:8px">他部品と混合するときの相手の品番（混合しないときは空欄） <span class="id">Nomor produk campuran</span><input id="mixHin" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例：RD2364A-011"></label><div class="hint" id="mixRes"></div>
+        <div class="small">▲1 重量差：製品 1kg以下 → 相手部品 2倍以下 ／ 製品 1kgより重い → 相手部品 1.5倍以下</div></div>
       <div class="f"><span class="small">ロット <span class="id">Lot</span></span>
         <div class="lotpick"><input type="date" id="lotDate" aria-label="ロットの日付"><b class="lotv" id="lotV">－</b></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="lprev" id="btnLotPrev" hidden></button><button class="lprev" id="btnLotClr">消す</button></div></div>
       <div class="f wide zkhin" id="zkHin"></div>
+      <div class="f wide p2box" id="p2Box"></div>
       <label class="f">パレットNo <span class="id">No. palet</span><input data-k="pal" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint">同じ品番・ロットが続くと自動で +1</span></label>
       <div class="f stc"><span class="small">開始時刻 <span class="id">Waktu mulai</span></span><div class="tcell"><input type="time" data-k="st"><button id="btnNow">今</button></div></div>
       <label class="f">初（分） <span class="id">Pertama</span><input data-k="t1" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT1"></span></label>
@@ -421,13 +441,15 @@ let workers=LS.get(APP+":workers",[]);
 let state, sel=0;
 
 // ---- 規格（作業標準書「作業ポイント-ショット」▲7 より）----
-const KUBUN=[["ring","リング","Ring"],["hub","ハブ・混合・異形物","Hub / campur / varian"],["sabi","サビ","Karat"],["seki","セキ（堰）","Seki"]];
+const KUBUN=[["ring","リング","Ring"],["hub","ハブ・混合・異形物","Hub / campur / varian"],["sabi","サビ","Karat"],["seki","セキ（堰）","Seki"],["re","再ショット","Shot ulang"]];
 const KL=Object.fromEntries(KUBUN.map(k=>[k[0],k[1]]));
 const SPEC=Object.assign({
-  "ドラムショット":{amp:[90,100],time:{ring:[9,15],hub:[14,20],sabi:[8,10],seki:[7,8]},re:[8,10],reNote:"RD4070A-H のみ"},
-  "エプロンショット":{amp:[50,55],time:{ring:[18,24],hub:[20,28],sabi:[10,15],seki:null},re:[15,20],reNote:"すべてのハブ"}
+  "ドラムショット":{amp:[90,100],time:{ring:[9,15],hub:[14,20],sabi:[8,10],seki:[7,8],re:[8,10]},re:[8,10],reNote:"すべてのハブ"},
+  "エプロンショット":{amp:[50,55],time:{ring:[18,24],hub:[20,28],sabi:[10,15],seki:null,re:[15,20]},re:[15,20],reNote:"すべてのハブ"}
 },CFG.spec||{});
-const rng=a=>a?`${a[0]}〜${a[1]}`:"規格なし";
+const rng=a=>a?(a[0]===a[1]?`${a[0]}`:`${a[0]}〜${a[1]}`):"規格なし";
+// ドラム（1次）→ エプロン（2次）に回す製品の、ドラムでの投射時間（分）
+const FIRST=CFG.firstShot||[10,10];
 
 // ---- 日付・設備 ----
 // 朝5時で日付が切りかわる（5時前の入力は前の日の日報）
@@ -467,10 +489,9 @@ function autoKubun(r){ if(isSeki(r.hin)) return "seki"; const n=String(r.name||"
 function kubunOf(r){ return r.km&&r.kubun?r.kubun:autoKubun(r); }
 function rowHas(r){ return !!r&&["hin","lot","pal","st","t1","t2","t3","amp","ampR"].some(k=>(r[k]||"")!==""); }
 function inR(v,a){ const n=num(v); if(n==null||!a) return ""; return (n<a[0]||n>a[1])?"ng":"ok"; }
-function timeSpec(r,eq){ const k=kubunOf(r); return k?((SPEC[eq||state.equip].time||{})[k]||null):null; }
+function timeSpec(r,eq){ if((eq||state.equip)==="ドラムショット"&&r.to2) return FIRST; const k=kubunOf(r); return k?((SPEC[eq||state.equip].time||{})[k]||null):null; }
 // 再ショットの規格が使える品番か（ドラム: RD4070A-H、エプロン: ハブ）
-function reApplies(r,eq){ eq=eq||state.equip; const nm=String(r.name||"").trim().toUpperCase();
-  if(eq==="ドラムショット") return normHin(r.hin).startsWith("RD4070A")&&nm==="H"; return nm==="H"||kubunOf(r)==="hub"; }
+function reApplies(r,eq){ const nm=String(r.name||"").trim().toUpperCase(), k=kubunOf(r); return nm==="H"||k==="hub"||k==="re"; }
 function jT1(r){ return inR(r.t1,timeSpec(r)); }
 function jRe(r,f){ if(num(r[f])==null) return ""; return reApplies(r)?inR(r[f],SPEC[state.equip].re):"warn"; }
 function jAmp(r){ return inR(r.amp,SPEC[state.equip].amp); }
@@ -479,12 +500,17 @@ function ampLow(r){ const n=num(r.amp); return n!=null&&n<SPEC[state.equip].amp[
 function ampHigh(r){ const n=num(r.amp); return n!=null&&n>SPEC[state.equip].amp[1]; }
 // 電流が下限より低い → ショット玉を補充 ／ 上限を超えている → 玉を追加しない
 function needRefill(r){ return ampLow(r); }
-function rowNg(r){ return [jT1(r),jRe(r,"t2"),jRe(r,"t3")].includes("ng")||(ampLow(r)&&jAmpR(r)!=="ok")||ampHigh(r); }
+// 他部品混合の再ショット：製品 1kg以下 → 相手部品は 2倍以下 ／ 1kgより重い → 1.5倍以下
+function mixJudge(r){ if(kubunOf(r)!=="re"||!r.mix) return null; const a=mFind(r.hin), b=mFind(r.mix), wa=a?num(a.unit):null, wb=b?num(b.unit):null;
+  if(wa==null||wb==null||wa<=0) return {ok:null,wa,wb,lim:null}; const lim=wa<=1?2:1.5, ratio=Math.round(wb/wa*100)/100; return {ok:ratio<=lim,wa,wb,lim,ratio}; }
+function rowNg(r){ const mj=mixJudge(r); if(mj&&mj.ok===false) return true; return [jT1(r),jRe(r,"t2"),jRe(r,"t3")].includes("ng")||(ampLow(r)&&jAmpR(r)!=="ok")||ampHigh(r); }
 function rowWarn(r){ return [jRe(r,"t2"),jRe(r,"t3")].includes("warn")||(needRefill(r)&&jAmpR(r)==="ok"); }
 function rowDone(r){ return !!(r.hin&&r.st&&r.t1&&r.amp); }
 function noteOf(r){ const n=[]; if(jT1(r)==="ng") n.push("投射時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="ng")) n.push("再ショット時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="warn")) n.push("再ショット規格外の品番（上長に報告）");
   if(needRefill(r)) n.push(r.ampR?(jAmpR(r)==="ok"?"玉補充 → 規格内":"玉補充後も規格外"):"電流 下限より低い（玉補充）");
-  if(ampHigh(r)) n.push("電流 上限超え（ショット玉を追加しない）"); return n.join(" / "); }
+  if(ampHigh(r)) n.push("電流 上限超え（ショット玉を追加しない）"); const mj=mixJudge(r); if(mj&&mj.ok===false) n.push(`混合の重量差 規格外（相手 ${mj.ratio}倍・上限 ${mj.lim}倍）`); return n.join(" / "); }
+function mixText(r){ return kubunOf(r)==="re"&&r.mix?` 混合:${r.mix}`:""; }
+function noteFull(r){ return [noteOf(r),P2?P2.text(r).trim():"",mixText(r).trim()].filter(Boolean).join(" / "); }
 function talley(n){ n=Math.max(0,n|0); return "正".repeat(Math.floor(n/5))+["","一","丅","下","止"][n%5]; }
 const LOTP=CFG.lotPrefix||"C";
 function lotFromDate(v){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||""); return m?`${LOTP}${m[1].slice(2)}-${+m[2]}-${+m[3]}`:""; }
@@ -499,7 +525,7 @@ function autoPal(i){ const r=state.rows[i]; if(r.pal!==""||!r.hin||isSeki(r.hin)
   if(p&&normHin(p.hin)===normHin(r.hin)&&(p.lot||"")===(r.lot||"")&&num(p.pal)!=null) r.pal=String(num(p.pal)+1); else if(r.lot) r.pal="1"; }
 // 前の行の品番（またはセキ）を引き継ぐ。種類が変わったときは手で打ちかえる
 function carryFrom(i){ const p=prevWith(i,"hin"); return p&&(state.equip!=="エプロンショット"||!isSeki(p.hin))?p:null; }
-function rowStart(i){ const r=state.rows[i]; if(!r.hin){ const p=carryFrom(i); if(p){ r.hin=p.hin; r.name=p.name; r.ok=p.ok; r.km=p.km; r.kubun=p.kubun; } }
+function rowStart(i){ const r=state.rows[i]; if(!r.hin){ const p=carryFrom(i); if(p){ r.hin=p.hin; r.name=p.name; r.ok=p.ok; r.km=p.km; r.kubun=p.kubun; if(state.equip==="ドラムショット"&&p.to2) r.to2=true; } }
   if(!r.worker){ const w=lastWorker(i); if(w) r.worker=w; } }
 
 // ---- 描画 ----
@@ -517,7 +543,7 @@ function renderMasterStat(){ const n=MIDX.length, at=MASTER.at?new Date(MASTER.a
   $("masterStat").textContent=n?`品番マスター ${n}件（造型日報のマスター${at?` ・ ${at.getMonth()+1}/${at.getDate()} ${at.getHours()}:${String(at.getMinutes()).padStart(2,"0")} 読込`:""}）`:"品番マスター未読込（設定の「造型日報のURL」を確認）"; }
 function chipCls(r){ if(!rowHas(r)) return ""; if(rowNg(r)) return "ng"; if(rowWarn(r)) return "warn"; return rowDone(r)?"filled":"inprog"; }
 function renderChips(){
-  $("chips").innerHTML=state.rows.map((r,i)=>`<button class="chip ${chipCls(r)} ${i===sel?"sel":""}" data-i="${i}">${i+1}<small>${r.hin?esc(isSeki(r.hin)?"セキ":r.hin.slice(0,9)):""}</small></button>`).join(""); }
+  $("chips").innerHTML=state.rows.map((r,i)=>`<button class="chip ${chipCls(r)} ${i===sel?"sel":""}" data-i="${i}">${i+1}<small>${r.hin?esc(isSeki(r.hin)?"セキ":r.hin.slice(0,9)):""}${P2?P2.chipTag(r):""}</small></button>`).join(""); }
 function fld(k,v,cls,ph){ return `<input data-k="${k}" data-pad="1" readonly inputmode="none" value="${esc(v)}" class="padin ${cls||""}" placeholder="${ph||"－"}">`; }
 function hintT(a,unit){ return a?`規格 ${rng(a)} ${unit}`:"規格なし"; }
 function renderEntry(){
@@ -547,6 +573,11 @@ function renderEntry(){
   $("hAmpR").className="hint "+(nr&&!r.ampR?"ng":(r.ampR&&jAmpR(r)==="ng"?"ng":""));
   renderWorkerSel();
   $("rowNote").textContent=noteOf(r); $("rowNote").hidden=!noteOf(r);
+  if(P2) P2.render();
+  { const isRe=k==="re"; $("reBox").hidden=!isRe; if(isRe){ const mi=$("mixHin"); if(document.activeElement!==mi) mi.value=r.mix||""; const mj=mixJudge(r), mr=$("mixRes");
+      if(!r.mix){ mr.className="hint"; mr.textContent=""; }
+      else if(!mj||mj.ok==null){ mr.className="hint warn"; mr.textContent="単重がわからないため重量差を判定できません（品番を確認）"; }
+      else { mr.className="hint "+(mj.ok?"ok":"ng"); mr.textContent=`製品 ${mj.wa}kg ／ 相手 ${mj.wb}kg → ${mj.ratio}倍（上限 ${mj.lim}倍）`+(mj.ok?"　✓ OK":"　⚠ 重量差が大きすぎます。一緒に再ショットしないでください"); } } }
 }
 function renderWorkerSel(){ const r=state.rows[sel], names=workerNames(); if(r.worker&&!names.includes(r.worker)) names.push(r.worker);
   $("wSel").innerHTML=`<option value="">－</option>${names.map(n=>`<option ${n===r.worker?"selected":""}>${esc(n)}</option>`).join("")}<option value="__add">＋ 追加 / Tambah</option>`; $("wSel").disabled=VIEW; }
@@ -554,7 +585,7 @@ function td(v,j){ return `<td class="${j==="ng"?"ng":(j==="warn"?"warn":"")}">${
 function renderTable(){
   const out=[];
   state.rows.forEach((r,i)=>{ if(!rowHas(r)) return; const k=kubunOf(r);
-    out.push(`<tr data-i="${i}" class="${i===sel?"sel":""}"><td><b>${i+1}</b></td><td style="text-align:left">${esc(r.hin)}${r.hin&&!r.ok&&!isSeki(r.hin)&&MIDX.length?' <span style="color:#c62828">*</span>':""}</td><td>${esc(r.name)}</td><td>${k?esc(KL[k]):""}</td><td>${esc(r.lot)}</td><td>${esc(r.pal)}</td><td>${esc(r.st)}</td>`+
+    out.push(`<tr data-i="${i}" class="${i===sel?"sel":""}"><td><b>${i+1}</b></td><td style="text-align:left">${esc(r.hin)}${r.hin&&!r.ok&&!isSeki(r.hin)&&MIDX.length?' <span style="color:#c62828">*</span>':""}${P2?P2.tag(r):""}</td><td>${esc(r.name)}</td><td>${k?esc(KL[k]):""}</td><td>${esc(r.lot)}</td><td>${esc(r.pal)}</td><td>${esc(r.st)}</td>`+
       td(r.t1,jT1(r))+td(r.t2,jRe(r,"t2"))+td(r.t3,jRe(r,"t3"))+td(r.amp,jAmp(r))+td(r.ampR,jAmpR(r))+`<td>${esc(r.worker)}</td></tr>`); });
   $("tbody").innerHTML=out.length?out.join(""):'<tr><td colspan="13" class="small" style="padding:12px">まだ入力がありません</td></tr>';
   const R=state.rows.filter(rowHas); $("tblSum").textContent=R.length?`${R.length}件（セキ ${R.filter(r=>isSeki(r.hin)).length}件）・ 規格外 ${R.filter(rowNg).length}件`:"";
@@ -581,7 +612,7 @@ function rememberWorker(w){ if(w&&typeof Crew!=="undefined") Crew.add(w); if(w&&
 function selectRow(i){ sel=Math.max(0,Math.min(state.rows.length-1,i)); renderChips(); renderEntry(); renderTable(); }
 
 // ---- 変更の記録 ----
-function touchRow(i){ if(VIEW) return; const r=state.rows[i]; r.u=Date.now(); const grew=ensureRows(); save(); Sync.queue("row",i); if(grew) setTimeout(renderChips,0); }
+function touchRow(i){ if(VIEW) return; if(P2) P2.autoLink(i); const r=state.rows[i]; r.u=Date.now(); const grew=ensureRows(); save(); Sync.queue("row",i); if(grew) setTimeout(renderChips,0); }
 function touchHeader(){ if(VIEW) return; state.hu=Date.now(); save(); Sync.queue("header",""); }
 function touchEvent(ev){ if(VIEW) return; ev.u=Date.now(); save(); Sync.queue("event",ev.id); }
 
@@ -603,7 +634,7 @@ const PADL={pal:["パレットNo","Palet No",false],t1:["初（投射時間・�
 
 // ---- 入力イベント ----
 $("eqTabs").addEventListener("click",async e=>{ const b=e.target.closest("[data-eq]"); if(!b||b.dataset.eq===state.equip) return;
-  try{ await Sync.flush(); }catch(x){} load(state.date,b.dataset.eq); sel=firstOpen(); renderAll(); Sync.pull(); toast(state.equip+" に切りかえました"); window.scrollTo({top:0,behavior:"smooth"}); });
+  try{ await Sync.flush(); }catch(x){} load(state.date,b.dataset.eq); sel=firstOpen(); renderAll(); Sync.pull(); P2.refresh(); toast(state.equip+" に切りかえました"); window.scrollTo({top:0,behavior:"smooth"}); });
 function firstOpen(){ const i=state.rows.findIndex(r=>!rowHas(r)); return Math.max(0,i); }
 $("chips").addEventListener("click",e=>{ const b=e.target.closest(".chip"); if(b) selectRow(+b.dataset.i); });
 $("tbody").addEventListener("click",e=>{ const tr=e.target.closest("tr[data-i]"); if(tr){ selectRow(+tr.dataset.i); $("entryCard").scrollIntoView({behavior:"smooth",block:"start"}); } });
@@ -622,7 +653,7 @@ function showSugg(q){ const list=suggest(q); sugg={list,act:0};
   suggBox.innerHTML=`<div class="hd">この品番ですか？ <span style="font-weight:normal">Apakah nomor ini?</span></div>`+list.map((m,x)=>`<button data-pick="${x}" class="${x===0?"act":""}"><b>${esc(m.hin)}</b>　${esc(m.name||"")}</button>`).join(""); suggBox.hidden=false; }
 function hideSugg(){ suggBox.hidden=true; suggBox.innerHTML=""; sugg={list:[],act:0}; }
 function setHin(i,hin,m){ const r=state.rows[i]; r.hin=hin; if(m){ r.hin=m.hin; r.name=m.name||""; r.ok=true; } else { r.ok=false; if(isSeki(hin)){ r.hin="セキ"; r.name=""; } }
-  if(!r.km) r.kubun=autoKubun(r); rowStart(i); autoPal(i); touchRow(i); }
+  if(!r.km) r.kubun=autoKubun(r); rowStart(i); if(state.equip==="ドラムショット"&&r.hin&&!isSeki(r.hin)){ const m2=LS.get(APP+":to2",{}), n=normHin(r.hin); if(n in m2) r.to2=!!m2[n]; } autoPal(i); touchRow(i); }
 function pickMaster(m){ if(!m) return; setHin(sel,m.hin,m); hideSugg(); renderEntry(); refreshLight(); }
 hinInp.addEventListener("input",()=>{ if(VIEW) return; const r=state.rows[sel]; r.hin=hinInp.value; const m=mFind(r.hin); r.ok=!!m; if(m) r.name=m.name||r.name; if(!r.km) r.kubun=autoKubun(r); touchRow(sel); showSugg(r.hin); refreshLight(); });
 hinInp.addEventListener("keydown",e=>{ if(sugg.list.length&&(e.key==="ArrowDown"||e.key==="ArrowUp")){ e.preventDefault(); sugg.act=(sugg.act+(e.key==="ArrowDown"?1:-1)+sugg.list.length)%sugg.list.length; suggBox.querySelectorAll("button").forEach((b,x)=>b.classList.toggle("act",x===sugg.act)); return; }
@@ -632,6 +663,7 @@ suggBox.addEventListener("pointerdown",e=>{ const b=e.target.closest("[data-pick
 $("btnSeki").onclick=()=>{ if(VIEW) return; const r=state.rows[sel]; r.km=false; setHin(sel,"セキ",null); renderEntry(); refreshLight(); };
 document.querySelector('#entryCard input[data-k="name"]').addEventListener("input",e=>{ if(VIEW) return; const r=state.rows[sel]; r.name=e.target.value; if(!r.km) r.kubun=autoKubun(r); touchRow(sel); refreshLight(); });
 document.querySelector('#entryCard input[data-k="name"]').addEventListener("change",()=>renderEntry());
+$("mixHin").addEventListener("input",e=>{ if(VIEW) return; const r=state.rows[sel], m=mFind(e.target.value); r.mix=m?m.hin:e.target.value.trim(); touchRow(sel); renderEntry(); refreshLight(); });
 $("kubunBtns").addEventListener("click",e=>{ const b=e.target.closest("[data-kb]"); if(!b||VIEW) return; const r=state.rows[sel];
   if(r.km&&r.kubun===b.dataset.kb){ r.km=false; r.kubun=autoKubun(r); } else { r.km=true; r.kubun=b.dataset.kb; } touchRow(sel); renderEntry(); refreshLight(); });
 // ロット（カレンダー）
@@ -665,7 +697,7 @@ $("btnAddEv").onclick=()=>{ if(VIEW) return; const ev={id:uid(),start:nowHM(),en
 $("events").addEventListener("input",e=>{ const box=e.target.closest(".ev"); if(!box||VIEW) return; const ev=state.events[+box.dataset.e], k=e.target.dataset.ek; if(!k) return; ev[k]=e.target.value; touchEvent(ev); });
 $("events").addEventListener("click",async e=>{ const b=e.target.closest("[data-del]"); if(!b||VIEW) return; if(!await askConfirm("この記録を削除しますか？","削除")) return; const ev=state.events[+b.dataset.del]; ev.del=true; touchEvent(ev); renderEvents(); });
 // 日付
-$("date").addEventListener("change",()=>{ const d=$("date").value; if(!d) return; Sync.flush(); load(d,state.equip); sel=firstOpen(); renderAll(); Sync.pull(); });
+$("date").addEventListener("change",()=>{ const d=$("date").value; if(!d) return; Sync.flush(); load(d,state.equip); sel=firstOpen(); renderAll(); Sync.pull(); P2.refresh(); });
 $("btnSettings").onclick=()=>{ updateDirInfo(); const c=Sync.getCfg(); $("cfgUrl").value=c.syncUrl||""; $("cfgToken").value=c.token||""; $("cfgInfo").textContent=""; const z=Master.cfg(); $("zkUrl").value=z.url||""; $("zkToken").value=z.token||""; $("zkInfo").textContent=""; $("dlgSettings").showModal(); };
 $("btnSettingsClose").onclick=()=>$("dlgSettings").close();
 
@@ -796,7 +828,7 @@ const DATA_HEAD=["日付","設備","No","品番","品名","区分","ロット","
 function jTxt(r){ return rowNg(r)?"×":(rowWarn(r)?"△":"○"); }
 function dataRows(){ const out=[DATA_HEAD], S=SPEC[state.equip];
   state.rows.forEach((r,i)=>{ if(!rowHas(r)) return; const k=kubunOf(r), ts=timeSpec(r);
-    out.push([state.date,state.equip,i+1,r.hin,r.name,k?KL[k]:"",r.lot,r.pal,r.st,r.t1,r.t2,r.t3,r.amp,r.ampR,r.worker,ts?rng(ts):"",rng(S.amp),jTxt(r),noteOf(r),state.balls||"",state.confirmBy]); });
+    out.push([state.date,state.equip,i+1,r.hin,r.name,k?KL[k]:"",r.lot,r.pal,r.st,r.t1,r.t2,r.t3,r.amp,r.ampR,r.worker,ts?rng(ts):"",rng(S.amp),jTxt(r),noteFull(r),state.balls||"",state.confirmBy]); });
   return out; }
 function eventRows(){ const out=[["日付","設備","No","発生時刻","復旧時刻","担当","異常/変化点内容","処置内容"]];
   liveEvents().forEach((e,i)=>out.push([state.date,state.equip,i+1,e.start,e.end,e.person,e.content,e.action])); return out; }
@@ -811,7 +843,7 @@ function buildNippoSheet(){
   let y=5;
   ["No","品番","品名","区分","ロット","パレットNo","開始時刻","初","再","再々","電流","補充後","作業者"].forEach((t,i)=>S.set(i,y,t,H)); y++;
   state.rows.forEach((r,i)=>{ if(!rowHas(r)) return; const k=kubunOf(r), J=j=>j==="ng"?NG:(j==="warn"?WN:B);
-    S.set(0,y,i+1,B); S.set(1,y,r.hin,BL); S.set(2,y,r.name,B); S.set(3,y,k?KL[k]:"",B); S.set(4,y,r.lot,B); S.set(5,y,r.pal,B); S.set(6,y,r.st,B);
+    S.set(0,y,i+1,B); S.set(1,y,r.hin,BL); S.set(2,y,r.name,B); S.set(3,y,(k?KL[k]:"")+(P2?P2.text(r):"")+mixText(r),B); S.set(4,y,r.lot,B); S.set(5,y,r.pal,B); S.set(6,y,r.st,B);
     S.set(7,y,r.t1,J(jT1(r))); S.set(8,y,r.t2,J(jRe(r,"t2"))); S.set(9,y,r.t3,J(jRe(r,"t3"))); S.set(10,y,r.amp,J(jAmp(r))); S.set(11,y,r.ampR,J(r.ampR?jAmpR(r):"")); S.set(12,y,r.worker,B); y++; });
   y++;
   S.merge(0,y,3,y,"ショット玉投入回数",H); S.merge(4,y,5,y,state.balls||0,B); S.merge(6,y,8,y,talley(state.balls)||"",B); y+=2;
@@ -887,7 +919,7 @@ const Sync=(function(){
   function build(type,ref){
     const d=state.date, e=state.equip; let u, raw;
     if(type==="header"){ u=state.hu||Date.now(); raw={confirmBy:state.confirmBy,balls:state.balls}; }
-    else if(type==="row"){ const r=state.rows[ref]; u=r.u||Date.now(); const k=kubunOf(r); raw=Object.assign({},r,{kubunOut:k?KL[k]:"",jOut:rowHas(r)?jTxt(r):"",noteOut:noteOf(r)}); }
+    else if(type==="row"){ const r=state.rows[ref]; u=r.u||Date.now(); const k=kubunOf(r); raw=Object.assign({},r,{kubunOut:k?KL[k]:"",jOut:rowHas(r)?jTxt(r):"",noteOut:noteFull(r)}); }
     else { const ev=state.events.find(x=>x.id===ref); u=ev.u; raw=Object.assign({},ev); }
     return {k:`${type}|${d}|${e}|${ref}`,op:{type,date:d,equip:e,ref:String(ref),u,raw}}; }
   function queue(type,ref){ if(!on()||VIEW) return; const it=build(type,ref); q=q.filter(x=>x.k!==it.k); q.push(it); persist(); status(); clearTimeout(timer); timer=setTimeout(flush,1200); }
@@ -981,6 +1013,63 @@ const ZLink=(function(){
   return {load,render,renderHin,renderDays};
 })();
 
+
+// ---- 1次ショット（ドラム）→ 2次ショット（エプロン）：パレットNoで追いかける ----
+// ドラム：「2次（エプロン）へ回す」をオン → ドラムの投射は 10分。エプロンの「2次待ち」に出る
+// エプロン：2次待ちのパレットを選ぶ（または品番・ロット・パレットNoが同じなら自動）→ 1次の時間とつながり、合計が出る
+var P2=(function(){
+  const DR="ドラムショット", AP="エプロンショット", cache={};
+  const shiftD=(d,n)=>{ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()+n); return ymd(x); };
+  const md=d=>{ const [,m,dd]=d.split("-"); return `${+m}/${+dd}`; };
+  function rowsOf(d,e){ if(d===state.date&&e===state.equip) return state.rows;
+    const a=((LS.get(APP+":day:"+d+"|"+e,null)||{}).rows)||[], b=((cache[d+"|"+e]||{}).rows)||[], out=[];
+    for(let i=0;i<Math.max(a.length,b.length);i++){ const x=a[i], y=b[i]; out[i]=(x&&y)?(((y.u||0)>(x.u||0))?y:x):(x||y||null); } return out; }
+  async function fetchDay(d,e){ const c=Sync.getCfg(); if(!c.syncUrl||navigator.onLine===false) return;
+    try{ const u=c.syncUrl+(c.syncUrl.includes("?")?"&":"?")+new URLSearchParams({action:"load",token:c.token,date:d,equip:e});
+      const j=await (await fetch(u,{redirect:"follow"})).json(); if(!j.ok) return; const rows=[];
+      (j.items||[]).forEach(it=>{ if(it.type==="row") rows[+it.ref]=Object.assign({},it.raw||{},{u:it.u}); }); cache[d+"|"+e]={rows}; }catch(x){} }
+  async function refresh(){ const d=state.date;
+    await Promise.all(state.equip===AP?[fetchDay(d,DR),fetchDay(shiftD(d,-1),DR),fetchDay(shiftD(d,-1),AP)]:[fetchDay(d,AP),fetchDay(shiftD(d,1),AP)]);
+    render(); renderChips(); renderTable(); }
+  const keyOf=(d,i)=>d+"|"+i;
+  function drumOf(key){ const d=String(key||"").slice(0,10), i=+String(key||"").slice(11); const r=rowsOf(d,DR)[i]; return r?{d,i,r}:null; }
+  // エプロン側でつながっているもの（前日・当日・翌日）
+  function links(){ const S={}; [-1,0,1].forEach(n=>{ const d=shiftD(state.date,n); rowsOf(d,AP).forEach((r,i)=>{ if(r&&r.from) S[r.from]={d,i,r}; }); }); return S; }
+  function waiting(){ const L=links(), out=[]; [0,-1].forEach(n=>{ const d=shiftD(state.date,n);
+      rowsOf(d,DR).forEach((r,i)=>{ if(!r||!r.to2||!rowHas(r)||!r.hin||isSeki(r.hin)) return; const key=keyOf(d,i); if(L[key]) return; out.push({d,i,r,key}); }); });
+    return out; }
+  const sumT=(a,b)=>{ const x=num(a), y=num(b); return (x!=null&&y!=null)?Math.round((x+y)*10)/10:null; };
+  function fill(r,w){ delete r.p2off; r.from=w.key; r.t0=w.r.t1||""; r.hin=w.r.hin; r.name=w.r.name||""; r.ok=!!w.r.ok; r.km=!!w.r.km; r.kubun=w.r.kubun||""; r.lot=w.r.lot||""; r.pal=w.r.pal||""; }
+  function autoLink(i){ if(state.equip!==AP) return; const r=state.rows[i]; if(!r||r.from||r.p2off||!r.hin||r.pal==="") return;
+    const n=normHin(r.hin), C=waiting().filter(w=>normHin(w.r.hin)===n&&String(w.r.pal)===String(r.pal)&&(!r.lot||!w.r.lot||r.lot===w.r.lot));
+    if(C.length===1){ r.from=C[0].key; r.t0=C[0].r.t1||""; setTimeout(()=>toast(`ドラム（1次）のパレット ${r.pal} とつなぎました`),0); } }
+  function chipTag(r){ return state.equip===DR?(r.to2?"→E":""):(r.from?"2次":""); }
+  function tag(r){ return state.equip===DR?(r.to2?'<span class="p2t">→エプロン</span>':""):(r.from?'<span class="p2t">2次</span>':""); }
+  function text(r){ if(state.equip===DR) return r.to2?" →エプロン":""; if(!r.from) return ""; const s=sumT(r.t0,r.t1); return ` 2次（1次ドラム ${r.t0||"－"}分${s!=null?"・合計 "+s+"分":""}）`; }
+  function render(){ const box=$("p2Box"); if(!box) return; const r=state.rows[sel]; if(!r){ box.innerHTML=""; return; }
+    if(isSeki(r.hin)){ box.innerHTML=""; return; }
+    if(state.equip===DR){
+      const L=links()[keyOf(state.date,sel)];
+      let stx=""; if(r.to2){ if(L){ const s=sumT(r.t1,L.r.t1); stx=`<div class="p2st done">✓ 2次済み：エプロン ${md(L.d)} No.${L.i+1}　初 ${esc(L.r.t1||"－")}分${s!=null?`（合計 ${s}分）`:""}</div>`; } else stx=`<div class="p2st wait">エプロンの2次待ちに出ています（パレット ${esc(r.pal||"－")}）</div>`; }
+      box.innerHTML=`<button class="p2tog ${r.to2?"on":""}" data-p2="tog">${r.to2?"✓ ":""}2次（エプロン）へ回す <span class="id">Ke Apron</span></button>
+        <div class="small" style="margin-top:4px">${r.to2?`エプロンへ回す製品：ドラムの投射は <b>${rng(FIRST)}分</b>`:"ドラムだけで終わる製品はオフのまま"}</div>${stx}`; return; }
+    // エプロン
+    if(r.from){ const w=drumOf(r.from), t0=w?w.r.t1:r.t0, s=sumT(t0,r.t1);
+      box.innerHTML=`<div class="p2h">🔗 2次ショット（1次はドラムショット）</div><div class="p2link">ドラム ${w?md(w.d)+" No."+(w.i+1):""}　パレット ${esc(r.pal||"－")}　初 <b>${esc(t0||"－")}分</b>${w&&w.r.st?`（${esc(w.r.st)}〜）`:""}<br>＋ エプロン 初 <b>${esc(r.t1||"－")}分</b>　＝ 合計 <b class="sum">${s!=null?s:"－"} 分</b></div>
+        <button class="lprev" data-p2="unlink" style="margin-top:6px">つなぎを外す（エプロンだけの製品にする）</button>`; return; }
+    const W=waiting();
+    box.innerHTML=`<div class="p2h">ドラムで1次が済んだパレット（2次待ち）<span class="id">Menunggu Apron</span></div>`+
+      (W.length?W.map((w,j)=>`<button class="p2w" data-p2w="${j}"><b>パレット ${esc(w.r.pal||"－")}</b>　${esc(w.r.hin)} ${esc(w.r.name||"")}<small>${esc(w.r.lot||"")}　ドラム ${md(w.d)} No.${w.i+1} ${esc(w.r.st||"")}〜　初 ${esc(w.r.t1||"－")}分</small></button>`).join("")+'<div class="small">タップするとこの行に品番・ロット・パレットNoが入ります。エプロンだけの製品は、そのまま品番を入力してください</div>'
+        :'<div class="small">2次待ちのパレットはありません（エプロンだけの製品は、そのまま品番を入力）</div>');
+    box._w=W; }
+  $("p2Box").addEventListener("click",e=>{ if(VIEW) return; const r=state.rows[sel]; const b=e.target.closest("[data-p2],[data-p2w]"); if(!b) return;
+    if(b.dataset.p2==="tog"){ rowStart(sel); r.to2=!r.to2; if(r.hin){ const m2=LS.get(APP+":to2",{}); m2[normHin(r.hin)]=r.to2; LS.set(APP+":to2",m2); } touchRow(sel); renderEntry(); refreshLight(); return; }
+    if(b.dataset.p2==="unlink"){ delete r.from; delete r.t0; r.p2off=true; touchRow(sel); renderEntry(); refreshLight(); return; }
+    const w=($("p2Box")._w||[])[+b.dataset.p2w]; if(!w) return; rowStart(sel); fill(r,w); touchRow(sel); renderEntry(); refreshLight(); toast(`No.${sel+1} にパレット ${r.pal}（${r.hin}）を入れました`); });
+  setInterval(()=>{ if(document.visibilityState==="visible") refresh(); },60000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") refresh(); });
+  return {refresh,render,autoLink,chipTag,tag,text};
+})();
 // ---- 作業者の名前（ショット日報の全端末で共通：ショット日報のスプレッドシートに保存）----
 const CREW_KEY="crew:shot";
 function CREW_URL(){ return Sync.getCfg().syncUrl||""; }
@@ -1033,7 +1122,7 @@ renderAll();
 // 設備の切りかえボタンを、上に固定されたヘッダーのすぐ下に残す
 { const fit=()=>{ const h=document.querySelector("header.top"); document.documentElement.style.setProperty("--hdrH",(getComputedStyle(h).position==="sticky"?h.offsetHeight:0)+"px"); }; fit(); window.addEventListener("resize",fit); }
 if(VIEW){ $("viewBadge").hidden=false; document.title="ショット日報（閲覧用）"; document.querySelectorAll("#entryCard input,#confirmBy").forEach(el=>el.readOnly=true); }
-Sync.status(); Sync.flush().then(()=>Sync.pull()); Master.load(false); ZLink.load(true); Crew.pull();
+Sync.status(); Sync.flush().then(()=>Sync.pull()); Master.load(false); ZLink.load(true); Crew.pull(); if(!/[?&]export=/.test(location.search)) P2.refresh();
 const EXP={csv:()=>dataRows(), master:()=>Master.load(true), load:(d,q)=>load(d,q), empty:()=>!state.rows.some(rowHas)&&!liveEvents().length, name:()=>fileName()};
 // ---- 自動Excel出力（URL末尾に ?export=開始日..終了日 を付けて開くと、その期間の日報Excelを作って画面に埋め込む）----
 (async function(){
