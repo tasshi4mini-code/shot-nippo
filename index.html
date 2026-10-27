@@ -230,6 +230,14 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
 .rebox[hidden]{display:none}
 .rnote{font-size:15px;line-height:1.6;color:#8a3a00;font-weight:bold}
 #mixRes.ok{color:#1b5e20;font-weight:bold}#mixRes.ng{color:#b00020;font-weight:bold;font-size:16px}
+select.ampsel{font-size:22px;font-weight:bold;min-height:52px;width:100%;appearance:auto;background:#fff}
+select.ampsel.ok{background:var(--ok)} select.ampsel.ng{background:var(--ng);color:var(--ng-ink)} select.ampsel.warn{background:var(--warn)}
+select.ampsel.ask{outline:3px solid #f9a825}
+#lotBox[hidden],#palBox[hidden],#t2Box[hidden],#t3Box[hidden]{display:none}
+.ampq{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff8e1;border:2px solid #f9a825;font-weight:bold;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ampq[hidden]{display:none}
+.ampq button{min-height:46px;font-weight:bold}
+.ampq .ok{background:#2e7d32;color:#fff;border-color:#2e7d32}
 .p2box:empty{display:none}
 .p2box{border:2px solid #6a1b9a;border-radius:12px;padding:10px;background:#faf5ff}
 .p2box .p2h{font-weight:bold;color:#4a148c;margin-bottom:6px}
@@ -308,20 +316,21 @@ body.view #btnClearRow,body.view #btnAddEv,body.view #btnNow,body.view #btnSeki,
       <div class="f wide rebox" id="reBox" hidden><div class="rnote">▲7 製品の砂付き具合を確認しながら、かけ過ぎに注意すること<br>▲5 サビ発生品を再ショットするときは、砂付き（ショット前）の製品かセキと一緒に行うこと（欠け発生対策）</div>
         <label class="f" style="margin-top:8px">他部品と混合するときの相手の品番（混合しないときは空欄） <span class="id">Nomor produk campuran</span><input id="mixHin" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例：RD2364A-011"></label><div class="hint" id="mixRes"></div>
         <div class="small">▲1 重量差：製品 1kg以下 → 相手部品 2倍以下 ／ 製品 1kgより重い → 相手部品 1.5倍以下</div></div>
-      <div class="f"><span class="small">ロット <span class="id">Lot</span></span>
+      <div class="f" id="lotBox"><span class="small">ロット <span class="id">Lot</span></span>
         <div class="lotpick"><input type="date" id="lotDate" aria-label="ロットの日付"><b class="lotv" id="lotV">－</b></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="lprev" id="btnLotPrev" hidden></button><button class="lprev" id="btnLotClr">消す</button></div></div>
       <div class="f wide zkhin" id="zkHin"></div>
       <div class="f wide p2box" id="p2Box"></div>
-      <label class="f">パレットNo <span class="id">No. palet</span><input data-k="pal" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint">同じ品番・ロットが続くと自動で +1</span></label>
+      <label class="f" id="palBox">パレットNo <span class="id">No. palet</span><input data-k="pal" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint">同じ日に同じ品番があると、続きの番号が自動で入ります</span></label>
       <div class="f stc"><span class="small">開始時刻 <span class="id">Waktu mulai</span></span><div class="tcell"><input type="time" data-k="st"><button id="btnNow">今</button></div></div>
       <label class="f">初（分） <span class="id">Pertama</span><input data-k="t1" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT1"></span></label>
-      <label class="f">再（分） <span class="id">Ulang</span><input data-k="t2" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT2"></span></label>
-      <label class="f">再々（分） <span class="id">Lagi dan lagi</span><input data-k="t3" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT3"></span></label>
-      <label class="f">電流 (A) <span class="id">Arus</span><input data-k="amp" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hAmp"></span></label>
-      <label class="f refill" id="refillBox">補充後 (A) <span class="id">Setelah penambahan</span><input data-k="ampR" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hAmpR"></span></label>
+      <label class="f" id="t2Box">再（分） <span class="id">Ulang</span><input data-k="t2" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT2"></span></label>
+      <label class="f" id="t3Box">再々（分） <span class="id">Lagi dan lagi</span><input data-k="t3" data-pad="1" readonly inputmode="none" class="padin" placeholder="－"><span class="hint" id="hT3"></span></label>
+      <label class="f">電流 (A) <span class="id">Arus</span><select data-k="amp" id="ampSel" class="ampsel"></select><span class="hint" id="hAmp"></span></label>
+      <label class="f refill" id="refillBox">補充後 (A) <span class="id">Setelah penambahan</span><select data-k="ampR" id="ampRSel" class="ampsel"></select><span class="hint" id="hAmpR"></span></label>
       <label class="f">作業者 <span class="id">Pekerja</span><select id="wSel" class="wsel"></select></label>
     </div>
+    <div class="ampq" id="ampQ" hidden></div>
     <div class="ampwarn" id="ampWarn" hidden>⚠ 電流が上限を超えています。ショット玉を追加しないでください！ <span class="id">Arus melebihi batas atas. Jangan menambah bola!</span></div>
     <div class="rownote" id="rowNote" hidden></div>
     <div class="small" style="margin-top:8px">数字の欄をタップすると数字のキーが出ます。初か電流を入れると、開始時刻（空欄のとき）と作業者（前の行と同じ）が自動で入ります。補充後を入れると、ショット玉投入回数が自動で1回ふえます。</div>
@@ -444,9 +453,12 @@ let state, sel=0;
 const KUBUN=[["ring","リング","Ring"],["hub","ハブ・混合・異形物","Hub / campur / varian"],["sabi","サビ","Karat"],["seki","セキ（堰）","Seki"],["re","再ショット","Shot ulang"]];
 const KL=Object.fromEntries(KUBUN.map(k=>[k[0],k[1]]));
 const SPEC=Object.assign({
-  "ドラムショット":{amp:[90,100],time:{ring:[9,15],hub:[14,20],sabi:[8,10],seki:[7,8],re:[8,10]},re:[8,10],reNote:"すべてのハブ"},
+  "ドラムショット":{amp:[90,100],time:{ring:[9,15],hub:[14,20],sabi:[8,10],seki:[6,8],re:[8,10]},re:[8,10],reNote:"すべてのハブ"},
   "エプロンショット":{amp:[50,55],time:{ring:[18,24],hub:[20,28],sabi:[10,15],seki:null,re:[15,20]},re:[15,20],reNote:"すべてのハブ"}
 },CFG.spec||{});
+// 電流のプルダウン：ドラム 50〜150A（10刻み）／ エプロン 25〜75A（5刻み）
+const AMPL=Object.assign({"ドラムショット":[50,150,10],"エプロンショット":[25,75,5]},CFG.ampList||{});
+function ampOpts(eq){ const [a,b,st]=AMPL[eq]||[0,200,10], o=[]; for(let v=a;v<=b+1e-9;v+=st) o.push(String(Math.round(v*10)/10)); return o; }
 const rng=a=>a?(a[0]===a[1]?`${a[0]}`:`${a[0]}〜${a[1]}`):"規格なし";
 // ドラム（1次）→ エプロン（2次）に回す製品の、ドラムでの投射時間（分）
 const FIRST=CFG.firstShot||[10,10];
@@ -505,7 +517,7 @@ function mixJudge(r){ if(kubunOf(r)!=="re"||!r.mix) return null; const a=mFind(r
   if(wa==null||wb==null||wa<=0) return {ok:null,wa,wb,lim:null}; const lim=wa<=1?2:1.5, ratio=Math.round(wb/wa*100)/100; return {ok:ratio<=lim,wa,wb,lim,ratio}; }
 function rowNg(r){ const mj=mixJudge(r); if(mj&&mj.ok===false) return true; return [jT1(r),jRe(r,"t2"),jRe(r,"t3")].includes("ng")||(ampLow(r)&&jAmpR(r)!=="ok")||ampHigh(r); }
 function rowWarn(r){ return [jRe(r,"t2"),jRe(r,"t3")].includes("warn")||(needRefill(r)&&jAmpR(r)==="ok"); }
-function rowDone(r){ return !!(r.hin&&r.st&&r.t1&&r.amp); }
+function rowDone(r){ return !!(r.hin&&r.st&&r.t1&&r.amp&&!r.ampQ); }
 function noteOf(r){ const n=[]; if(jT1(r)==="ng") n.push("投射時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="ng")) n.push("再ショット時間 規格外"); if(["t2","t3"].some(f=>jRe(r,f)==="warn")) n.push("再ショット規格外の品番（上長に報告）");
   if(needRefill(r)) n.push(r.ampR?(jAmpR(r)==="ok"?"玉補充 → 規格内":"玉補充後も規格外"):"電流 下限より低い（玉補充）");
   if(ampHigh(r)) n.push("電流 上限超え（ショット玉を追加しない）"); const mj=mixJudge(r); if(mj&&mj.ok===false) n.push(`混合の重量差 規格外（相手 ${mj.ratio}倍・上限 ${mj.lim}倍）`); return n.join(" / "); }
@@ -521,12 +533,35 @@ function prevWith(i,k){ for(let j=i-1;j>=0;j--){ const v=state.rows[j][k]; if(v!
 function lastWorker(i){ const p=prevWith(i,"worker"); return p?p.worker:LS.get(APP+":lastW",""); }
 function workerNames(){ const base=(typeof Crew!=="undefined"&&Crew.list())||WORKERS0; return [...base,...workers.filter(w=>!base.includes(w))]; }
 // パレットNo：前の行と同じ品番・ロットなら +1、ちがえば 1
-function autoPal(i){ const r=state.rows[i]; if(r.pal!==""||!r.hin||isSeki(r.hin)) return; const p=prevWith(i,"hin");
-  if(p&&normHin(p.hin)===normHin(r.hin)&&(p.lot||"")===(r.lot||"")&&num(p.pal)!=null) r.pal=String(num(p.pal)+1); else if(r.lot) r.pal="1"; }
+function autoPal(i){ const r=state.rows[i]; if(r.pal!==""||!r.hin||isSeki(r.hin)) return; const n=normHin(r.hin); let mx=null;
+  state.rows.forEach((x,j)=>{ if(j===i||!x.hin||normHin(x.hin)!==n) return; const p=num(x.pal); if(p!=null) mx=Math.max(mx==null?0:mx,p); });
+  if(mx!=null) r.pal=String(mx+1); else if(r.lot) r.pal="1"; }
+// 投射時間（初）：前回の数値を入れておく（セキは 6分から。7分にしたら次から7分）
+function lastT1Key(r){ return state.equip+"|"+(isSeki(r.hin)?"seki":(state.equip==="ドラムショット"&&r.to2?"to2":kubunOf(r))); }
+function autoT1(i){ const r=state.rows[i]; if(!r.hin||VIEW) return; if(r.t1!==""&&!r.t1a) return;
+  let v="";
+  if(isSeki(r.hin)) v=String(LS.get(APP+":sekiT","6"));
+  else if(state.equip==="ドラムショット"&&r.to2) v=String(FIRST[0]);
+  else { const k=kubunOf(r); let p=null;
+    for(let j=i-1;j>=0;j--){ const x=state.rows[j]; if(x.t1===""||!x.hin||isSeki(x.hin)||(state.equip==="ドラムショット"&&x.to2)) continue; if(kubunOf(x)===k){ p=x; break; } }
+    v=p?p.t1:String((LS.get(APP+":lastT1",{})[lastT1Key(r)])||""); }
+  if(v!==""){ r.t1=v; r.t1a=true; } }
+// 電流：前回の数値を入れて、毎回「問題ないか」を聞く
+let ampAsking=false;
+function autoAmp(i){ const r=state.rows[i]; if(VIEW||r.amp!==""||r.ampAsked||!r.hin) return; const p=prevWith(i,"amp"); const v=p?(p.ampR||p.amp):String(LS.get(APP+":lastAmp",{})[state.equip]||"");
+  r.ampAsked=true; if(!v) return; r.amp=v; r.ampQ=true; askAmp(i); }
+function askAmp(i){ if(ampAsking) return; ampAsking=true; setTimeout(async()=>{ const r=state.rows[i]; if(!r||!r.ampQ){ ampAsking=false; return; }
+  const ok=await askConfirm(`No.${i+1}　電流は ${r.amp} A で問題ないですか？\nApakah arusnya ${r.amp} A sudah benar?`,"問題なし / Ya","変える / Ubah"); ampAsking=false;
+  ampAnswer(i,ok); },250); }
+function ampAnswer(i,ok){ const r=state.rows[i]; if(!r) return; r.ampQ=false; if(!ok) r.amp=""; touchRow(i); if(i===sel) renderEntry(); refreshLight(); if(!ok&&i===sel) setTimeout(()=>{ try{ $("ampSel").focus(); }catch(e){} },100);
+  if(ok) afterAmp(r); }
+function afterAmp(r){ if(needRefill(r)&&!r.ampR) toast("電流が下限より低いです。ショット玉を補充して「補充後」を入れてください");
+  if(ampHigh(r)) askConfirm(`電流 ${r.amp}A は上限 ${SPEC[state.equip].amp[1]}A を超えています。\nショット玉を追加しないでください。\nTidak boleh menambah bola!`,"わかりました","閉じる"); }
+
 // 前の行の品番（またはセキ）を引き継ぐ。種類が変わったときは手で打ちかえる
 function carryFrom(i){ const p=prevWith(i,"hin"); return p&&(state.equip!=="エプロンショット"||!isSeki(p.hin))?p:null; }
 function rowStart(i){ const r=state.rows[i]; if(!r.hin){ const p=carryFrom(i); if(p){ r.hin=p.hin; r.name=p.name; r.ok=p.ok; r.km=p.km; r.kubun=p.kubun; if(state.equip==="ドラムショット"&&p.to2) r.to2=true; } }
-  if(!r.worker){ const w=lastWorker(i); if(w) r.worker=w; } }
+  if(!r.worker){ const w=lastWorker(i); if(w) r.worker=w; }  autoT1(i); autoPal(i); autoAmp(i); }
 
 // ---- 描画 ----
 function renderHeader(){ $("date").value=state.date; $("confirmBy").value=state.confirmBy; renderEquip(); renderSpec(); renderBalls(); renderMasterStat(); }
@@ -561,8 +596,12 @@ function renderEntry(){
   $("lotV").textContent=r.lot||"－"; $("lotV").classList.toggle("empty",!r.lot); $("btnLotPrev").hidden=!lp||lp.lot===r.lot; $("btnLotPrev").textContent=lp?`前と同じ（${lp.lot}）`:"";
   $("lotDate").value="";
   E.querySelector('[data-k="st"]').value=r.st;
-  const set=(f,v,j)=>{ const el=E.querySelector(`[data-k="${f}"]`); el.value=v; el.className="padin "+(j||""); };
-  set("pal",r.pal,""); set("t1",r.t1,jT1(r)); set("t2",r.t2,jRe(r,"t2")); set("t3",r.t3,jRe(r,"t3")); set("amp",r.amp,jAmp(r)); set("ampR",r.ampR,jAmpR(r));
+  const set=(f,v,j)=>{ const el=E.querySelector(`[data-k="${f}"]`); el.value=v; el.className=(el.tagName==="SELECT"?"ampsel ":"padin ")+(j||""); };
+  const seki=isSeki(r.hin); $("lotBox").hidden=seki; $("palBox").hidden=seki; $("t2Box").hidden=seki; $("t3Box").hidden=seki||!(r.t2||r.t3);
+  const ao=ampOpts(state.equip), opt=(v)=>`<option value="">－</option>`+[...ao,...(v&&!ao.includes(String(v))?[String(v)]:[])].map(x=>`<option ${String(v)===x?"selected":""}>${x}</option>`).join("");
+  $("ampSel").innerHTML=opt(r.amp); $("ampRSel").innerHTML=opt(r.ampR); $("ampSel").disabled=VIEW; $("ampRSel").disabled=VIEW;
+  set("pal",r.pal,""); set("t1",r.t1,jT1(r)); set("t2",r.t2,jRe(r,"t2")); set("t3",r.t3,jRe(r,"t3")); set("amp",r.amp,jAmp(r)+(r.ampQ?" ask":"")); set("ampR",r.ampR,jAmpR(r));
+  $("ampQ").hidden=!r.ampQ; if(r.ampQ) $("ampQ").innerHTML=`⚡ 電流は前回と同じ <b style="font-size:20px">${esc(r.amp)} A</b> で問題ないですか？ <span class="id">Arus OK?</span><button class="ok" id="ampQok">問題なし</button><button id="ampQng">変える</button>`;
   $("hT1").textContent=hintT(ts,"分")+(k?"（"+KL[k]+"）":""); $("hT1").className="hint "+(jT1(r)==="ng"?"ng":"");
   const reTxt=re?`再ショット規格 ${rng(S.re)} 分`:`再ショット規格外の品番（${S.reNote}）→ 上長に報告`;
   $("hT2").textContent=reTxt; $("hT2").className="hint "+(r.t2&&!re?"warn":(jRe(r,"t2")==="ng"?"ng":""));
@@ -596,7 +635,7 @@ function renderEvents(){
    <div class="ev" data-e="${i}">
      <label class="f">発生時刻 <span class="id">Waktu</span><input type="time" data-ek="start" value="${esc(e.start)}" ${VIEW?"readonly":""}></label>
      <label class="f">復旧時刻 <span class="id">Pemulihan</span><input type="time" data-ek="end" value="${esc(e.end)}" ${VIEW?"readonly":""}></label>
-     <label class="f">担当<input lang="ja" data-ek="person" list="workerList" value="${esc(e.person)}" ${VIEW?"readonly":""}></label>
+     <label class="f">担当 <span class="id">PIC</span><select data-ek="person" class="wsel" ${VIEW?"disabled":""}><option value="">－</option>${[...workerNames(),...(e.person&&!workerNames().includes(e.person)?[e.person]:[])].map(n=>`<option ${n===e.person?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
      <label class="f wide">異常/変化点内容 <span class="id">Detail kelainan</span><textarea lang="ja" data-ek="content" ${VIEW?"readonly":""}>${esc(e.content)}</textarea></label>
      <label class="f wide">処置内容 <span class="id">Tindakan</span><textarea lang="ja" data-ek="action" ${VIEW?"readonly":""}>${esc(e.action)}</textarea></label>
      <button data-del="${i}" style="align-self:end">削除</button>
@@ -660,12 +699,21 @@ hinInp.addEventListener("keydown",e=>{ if(sugg.list.length&&(e.key==="ArrowDown"
   if(e.key==="Enter"){ e.preventDefault(); if(sugg.list.length) pickMaster(mFind(hinInp.value)||sugg.list[sugg.act]); else { const m=mFind(hinInp.value); if(m) pickMaster(m); else { setHin(sel,hinInp.value,null); renderEntry(); refreshLight(); } } } if(e.key==="Escape") hideSugg(); });
 hinInp.addEventListener("blur",()=>setTimeout(()=>{ hideSugg(); if(VIEW) return; const r=state.rows[sel], m=mFind(r.hin); if(m&&r.hin!==m.hin){ pickMaster(m); return; } if(r.hin){ setHin(sel,r.hin,m); renderEntry(); refreshLight(); } },150));
 suggBox.addEventListener("pointerdown",e=>{ const b=e.target.closest("[data-pick]"); if(!b) return; e.preventDefault(); pickMaster(sugg.list[+b.dataset.pick]); });
+$("ampQ").addEventListener("click",e=>{ if(VIEW) return; if(e.target.id==="ampQok") ampAnswer(sel,true); else if(e.target.id==="ampQng") ampAnswer(sel,false); });
+// 電流（プルダウン）
+$("ampSel").addEventListener("change",e=>{ if(VIEW) return; const r=state.rows[sel]; r.amp=e.target.value; r.ampQ=false; r.ampAsked=true;
+  if(r.amp!==""){ rowStart(sel); if(!r.st) r.st=nowHM(); const m=LS.get(APP+":lastAmp",{}); m[state.equip]=r.amp; LS.set(APP+":lastAmp",m); }
+  touchRow(sel); renderEntry(); refreshLight(); if(r.amp!=="") afterAmp(r); });
+$("ampRSel").addEventListener("change",e=>{ if(VIEW) return; const r=state.rows[sel], had=r.ampR; r.ampR=e.target.value;
+  if(r.ampR!==""){ const m=LS.get(APP+":lastAmp",{}); m[state.equip]=r.ampR; LS.set(APP+":lastAmp",m); }
+  if(r.ampR!==""&&!had&&!ampHigh(r)){ state.balls++; touchHeader(); renderBalls(); toast("ショット玉投入回数を +1 しました（"+state.balls+"回）"); }
+  touchRow(sel); renderEntry(); refreshLight(); });
 $("btnSeki").onclick=()=>{ if(VIEW) return; const r=state.rows[sel]; r.km=false; setHin(sel,"セキ",null); renderEntry(); refreshLight(); };
 document.querySelector('#entryCard input[data-k="name"]').addEventListener("input",e=>{ if(VIEW) return; const r=state.rows[sel]; r.name=e.target.value; if(!r.km) r.kubun=autoKubun(r); touchRow(sel); refreshLight(); });
 document.querySelector('#entryCard input[data-k="name"]').addEventListener("change",()=>renderEntry());
 $("mixHin").addEventListener("input",e=>{ if(VIEW) return; const r=state.rows[sel], m=mFind(e.target.value); r.mix=m?m.hin:e.target.value.trim(); touchRow(sel); renderEntry(); refreshLight(); });
 $("kubunBtns").addEventListener("click",e=>{ const b=e.target.closest("[data-kb]"); if(!b||VIEW) return; const r=state.rows[sel];
-  if(r.km&&r.kubun===b.dataset.kb){ r.km=false; r.kubun=autoKubun(r); } else { r.km=true; r.kubun=b.dataset.kb; } touchRow(sel); renderEntry(); refreshLight(); });
+  if(r.km&&r.kubun===b.dataset.kb){ r.km=false; r.kubun=autoKubun(r); } else { r.km=true; r.kubun=b.dataset.kb; } autoT1(sel); touchRow(sel); renderEntry(); refreshLight(); });
 // ロット（カレンダー）
 $("lotDate").addEventListener("change",e=>{ if(VIEW) return; const v=lotFromDate(e.target.value); if(!v) return; const r=state.rows[sel]; r.lot=v; rowStart(sel); autoPal(sel); touchRow(sel); renderEntry(); refreshLight(); });
 $("btnLotPrev").onclick=()=>{ if(VIEW) return; const p=prevWith(sel,"lot"); if(!p) return; const r=state.rows[sel]; r.lot=p.lot; rowStart(sel); autoPal(sel); touchRow(sel); renderEntry(); refreshLight(); };
@@ -683,6 +731,7 @@ $("entryCard").addEventListener("click",e=>{ const pin=e.target.closest("[data-p
   if(f==="ampR") sub=ampHigh(r)?`⚠ 電流が上限を超えています。ショット玉は追加しないでください`:`規格 ${rng(S.amp)} A（ショット玉を補充したあとの電流）`;
   if(f==="pal"){ const p=prevWith(sel,"pal"); sub=p?`前の行 ${p.pal}`:""; }
   openPad(`No.${sel+1}　${L[0]}`,sub,r[f],L[2],v=>{ const had=r[f]; r[f]=v;
+    if(f==="t1"){ r.t1a=false; if(v!==""){ if(isSeki(r.hin)) LS.set(APP+":sekiT",v); const m=LS.get(APP+":lastT1",{}); m[lastT1Key(r)]=v; LS.set(APP+":lastT1",m); } }
     if(v!==""){ rowStart(sel); if((f==="t1"||f==="amp")&&!r.st) r.st=nowHM(); }
     if(f==="ampR"&&v!==""&&!had&&!VIEW&&!ampHigh(r)){ state.balls++; touchHeader(); renderBalls(); toast("ショット玉投入回数を +1 しました（"+state.balls+"回）"); }
     touchRow(sel); renderEntry(); refreshLight();
@@ -993,16 +1042,30 @@ const ZLink=(function(){
     const col=(d,lab)=>{ const L=D.list.filter(p=>p.d===d); return `<div class="zcol"><div class="zt">${lab} <span class="small">${md(d)}</span></div>${L.length?L.map(p=>item(p)).join(""):'<div class="small" style="padding:6px 0">造型の入力なし</div>'}</div>`; };
     box.innerHTML=`<div class="zhead"><b>造型日報（${ZEQ.join("・")}）で造型した製品</b> <span class="small">${err?`⚠ 読み込めませんでした（${esc(err)}）`:(at?`${at.getHours()}:${String(at.getMinutes()).padStart(2,"0")} 読込`:"読み込み中…")} ・ タップすると選んでいる行に品番とロットが入ります</span></div><div class="zcols">${col(t,"当日")}${col(y,"前日")}</div>`; }
   // 品番ごとの造型日（ロットの候補）
+  // さかのぼって探す（直近の分で3ロットに足りないとき、最大 DEEP 日前まで）。過去の日はこの端末に覚えておく
+  const DEEP=+CFG.zokeiDeepDays||90, NLOT=3; let H=LS.get(APP+":zkhist",{}); const deepBusy={}, deepDone={};
+  function entriesOf(n){ const m={}; D.list.forEach(p=>{ if(p.n===n) (m[p.d]=m[p.d]||[]).push(p); });
+    Object.keys(H).forEach(d=>{ if(m[d]) return; (H[d]||[]).forEach(p=>{ if(p.n===n) (m[d]=m[d]||[]).push(Object.assign({d},p)); }); }); return m; }
+  async function deep(n){ if(deepBusy[n]||deepDone[n]||!Master.cfg().url||navigator.onLine===false) return; deepBusy[n]=1; const t=zToday();
+    try{ for(let s0=DAYS;s0<DEEP;s0+=7){ if(Object.keys(entriesOf(n)).length>=NLOT) break; const jobs=[], ds=[];
+        for(let k=s0;k<Math.min(s0+7,DEEP);k++){ const d=shift(t,-k); if(H[d]) continue; ds.push(d); ZEQ.forEach(e=>jobs.push(get(d,e).then(items=>({d,e,items})))); }
+        if(!jobs.length) continue; const res=await Promise.all(jobs), tmp={}; ds.forEach(d=>tmp[d]=[]);
+        res.forEach(({d,e,items})=>items.forEach(it=>{ if(it.type!=="row") return; const x=it.raw||{};
+          (x.items||[]).forEach((v,j)=>{ if(!v||!v.hin) return; const tot=(j>0&&v.tot!=null&&v.tot!=="")?v.tot:x.total, kk=num(v.koma), tt=num(tot);
+            tmp[d].push({e,hin:v.hin,n:normHin(v.hin),name:v.name||"",st:x.st||"",en:x.en||"",qty:(kk!=null&&tt!=null)?kk*Math.max(0,tt-(num(x.unp)||0)):null}); }); }));
+        Object.assign(H,tmp); const lim=shift(t,-DEEP); Object.keys(H).forEach(d=>{ if(d<lim) delete H[d]; }); LS.set(APP+":zkhist",H); renderHin(); }
+      deepDone[n]=1; }catch(e){}
+    deepBusy[n]=0; renderHin(); }
   function renderHin(){ const box=$("zkHin"); if(!box) return; const r=state.rows[sel], h=r.hin||((carryFrom(sel)||{}).hin)||"";
     if(!Master.cfg().url||!h||isSeki(h)){ box.innerHTML=""; return; }
-    const n=normHin(h), L=D.list.filter(p=>p.n===n), seen={}, days=[];
-    L.forEach(p=>{ if(!seen[p.d]){ seen[p.d]=[]; days.push(p.d); } seen[p.d].push(p); });
+    const n=normHin(h), seen=entriesOf(n), all=Object.keys(seen).sort().reverse(), days=all.slice(0,NLOT);
+    if(all.length<NLOT&&!deepDone[n]) deep(n);
     const ld=dateFromLot(r.lot);
     let warn="";
-    if(!L.length) warn=`⚠ 直近${DAYS}日の造型日報にこの品番がありません。滞留品かもしれません。現品票のロットを確認してください`;
-    else if(r.lot&&ld&&!seen[ld]) warn=(D.from&&ld<D.from)?`※ ${md(ld)} は${DAYS}日より前のため確認できません（現品票のロットを確認）`:`⚠ ロット ${esc(r.lot)} の日（${md(ld)}）にこの品番の造型の記録がありません。現品票を確認してください`;
-    box.innerHTML=`<div class="small">この品番を造型した日（造型日報・直近${DAYS}日）タップでロットに入ります</div><div class="zlots">${days.map(d=>{ const lot=lotFromDate(d), P=seen[d];
-        return `<button class="zl ${r.lot===lot?"on":""}" data-zl="${d}"><b>${lot}</b><small>${P.map(p=>`${esc(p.e)} ${esc(p.st)}${p.en?"〜"+esc(p.en):"〜"}${p.qty!=null?" "+p.qty+"個":""}`).join(" / ")}</small></button>`; }).join("")}</div>${warn?`<div class="zwarn">${warn}</div>`:""}`; }
+    if(!all.length) warn=deepBusy[n]?"":`⚠ 直近${DEEP}日の造型日報にこの品番がありません。滞留品かもしれません。現品票のロットを確認してください`;
+    else if(r.lot&&ld&&!seen[ld]) warn=(ld<shift(zToday(),-DEEP))?`※ ${md(ld)} は${DEEP}日より前のため確認できません（現品票のロットを確認）`:`⚠ ロット ${esc(r.lot)} の日（${md(ld)}）にこの品番の造型の記録がありません。現品票を確認してください`;
+    box.innerHTML=`<div class="small">この品番を前回造型した日（新しい順に${NLOT}ロット）タップでロットに入ります${deepBusy[n]?"　<b>さかのぼって検索中…</b>":""}</div><div class="zlots">${days.map(d=>{ const lot=lotFromDate(d), P=seen[d];
+        return `<button class="zl ${r.lot===lot?"on":""}" data-zl="${d}"><b>${lot}</b><small>${md(d)} ${P.map(p=>`${esc(p.e)} ${esc(p.st)}${p.en?"〜"+esc(p.en):"〜"}${p.qty!=null?" "+p.qty+"個":""}`).join(" / ")}</small></button>`; }).join("")}</div>${warn?`<div class="zwarn">${warn}</div>`:""}`; }
   function render(){ renderDays(); renderHin(); }
   $("zkDays").addEventListener("click",e=>{ const b=e.target.closest("[data-zh]"); if(!b||VIEW) return; const r=state.rows[sel];
     const m=mFind(b.dataset.zh); r.km=false; setHin(sel,b.dataset.zh,m||null); if(!m){ r.name=b.dataset.zn; if(!r.km) r.kubun=autoKubun(r); }
@@ -1063,7 +1126,7 @@ var P2=(function(){
         :'<div class="small">2次待ちのパレットはありません（エプロンだけの製品は、そのまま品番を入力）</div>');
     box._w=W; }
   $("p2Box").addEventListener("click",e=>{ if(VIEW) return; const r=state.rows[sel]; const b=e.target.closest("[data-p2],[data-p2w]"); if(!b) return;
-    if(b.dataset.p2==="tog"){ rowStart(sel); r.to2=!r.to2; if(r.hin){ const m2=LS.get(APP+":to2",{}); m2[normHin(r.hin)]=r.to2; LS.set(APP+":to2",m2); } touchRow(sel); renderEntry(); refreshLight(); return; }
+    if(b.dataset.p2==="tog"){ rowStart(sel); r.to2=!r.to2; autoT1(sel); if(r.hin){ const m2=LS.get(APP+":to2",{}); m2[normHin(r.hin)]=r.to2; LS.set(APP+":to2",m2); } touchRow(sel); renderEntry(); refreshLight(); return; }
     if(b.dataset.p2==="unlink"){ delete r.from; delete r.t0; r.p2off=true; touchRow(sel); renderEntry(); refreshLight(); return; }
     const w=($("p2Box")._w||[])[+b.dataset.p2w]; if(!w) return; rowStart(sel); fill(r,w); touchRow(sel); renderEntry(); refreshLight(); toast(`No.${sel+1} にパレット ${r.pal}（${r.hin}）を入れました`); });
   setInterval(()=>{ if(document.visibilityState==="visible") refresh(); },60000);
