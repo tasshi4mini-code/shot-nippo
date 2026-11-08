@@ -254,6 +254,12 @@ select.ampsel.ask{outline:3px solid #f9a825}
 .ampwarn{margin-top:10px;padding:10px 14px;border-radius:10px;background:#ffebee;border:3px solid #d50000;color:#b00020;font-weight:bold;font-size:18px;animation:rblink 1s ease-in-out infinite alternate}
 .hinwrap input::placeholder{font-size:15px;font-weight:normal;color:#7b8794}
 @media (max-width:900px){ .zcols{grid-template-columns:1fr} }
+/* v8：ドラムショット使用禁止の品番 */
+.banbar{background:#c62828;color:#fff;border-radius:10px;padding:10px 12px;font-weight:bold;font-size:16px;margin:8px 0;line-height:1.5}
+.banbar small{display:block;font-weight:normal;font-size:13px;opacity:.95}
+.chip.ban{background:#c62828!important;color:#fff!important;border-color:#8e0000!important}
+#dlgBan .dlg{border:4px solid #c62828}
+#dlgBan h3{color:#c62828;margin:0 0 8px;font-size:22px}
 </style>
 </head>
 <body>
@@ -410,6 +416,11 @@ select.ampsel.ask{outline:3px solid #f9a825}
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="pri" onclick="this.closest('dialog').close()">閉じる</button></div>
 </div></dialog>
 
+<dialog id="dlgBan"><div class="dlg">
+  <h3>⚠ ドラムショット使用禁止</h3>
+  <p id="banMsg" style="font-size:18px;line-height:1.6;margin:4px 0 14px"></p>
+  <div style="display:flex;justify-content:flex-end"><button class="pri" id="banOk" style="min-height:52px;font-size:18px;padding:0 24px">わかりました / Mengerti</button></div>
+</div></dialog>
 <dialog id="dlgConfirm"><div class="dlg">
   <p id="cfMsg" style="font-size:17px;margin:4px 0 18px;white-space:pre-line"></p>
   <div style="display:flex;justify-content:flex-end;gap:8px"><button id="cfNo">キャンセル</button><button class="pri" id="cfYes">OK</button></div>
@@ -576,7 +587,13 @@ function renderSpec(){ const S=SPEC[state.equip];
 function renderBalls(){ $("ballN").textContent=state.balls; $("ballT").textContent=talley(state.balls)||"－"; }
 function renderMasterStat(){ const n=MIDX.length, at=MASTER.at?new Date(MASTER.at):null;
   $("masterStat").textContent=n?`品番マスター ${n}件（造型日報のマスター${at?` ・ ${at.getMonth()+1}/${at.getDate()} ${at.getHours()}:${String(at.getMinutes()).padStart(2,"0")} 読込`:""}）`:"品番マスター未読込（設定の「造型日報のURL」を確認）"; }
-function chipCls(r){ if(!rowHas(r)) return ""; if(rowNg(r)) return "ng"; if(rowWarn(r)) return "warn"; return rowDone(r)?"filled":"inprog"; }
+// v8：ドラムショットで使ってはいけない品番（ダコンが増えているため）。config.js の drumBan で変えられる
+const DRUM_BAN=(CFG.drumBan||["RD2331B-000","RD2405A-000","RD2331C-000"]).map(h=>normHin(h));
+const DRUM="ドラムショット";
+function drumBanned(r){ return !!(state&&state.equip===DRUM&&r&&r.hin&&DRUM_BAN.includes(normHin(r.hin))); }
+function banWarn(r){ if(!drumBanned(r)) return; $("banMsg").innerHTML=`<b style="font-size:22px">${esc(r.hin)}</b> は<b>ドラムショットでは使用禁止</b>です。<br>理由：ドラムショットで製品のダコンが増えているため。<br><b>エプロンショットを使ってください。</b><br><span style="font-size:15px;color:#5d6778">${esc(r.hin)} tidak boleh pakai Drum Shot (dakon bertambah). Pakai Apron Shot.</span>`;
+  if(!$("dlgBan").open) $("dlgBan").showModal(); }
+function chipCls(r){ if(!rowHas(r)) return ""; if(drumBanned(r)) return "ban"; if(rowNg(r)) return "ng"; if(rowWarn(r)) return "warn"; return rowDone(r)?"filled":"inprog"; }
 function renderChips(){
   $("chips").innerHTML=state.rows.map((r,i)=>`<button class="chip ${chipCls(r)} ${i===sel?"sel":""}" data-i="${i}">${i+1}<small>${r.hin?esc(isSeki(r.hin)?"セキ":r.hin.slice(0,9)):""}${P2?P2.chipTag(r):""}</small></button>`).join(""); }
 function fld(k,v,cls,ph){ return `<input data-k="${k}" data-pad="1" readonly inputmode="none" value="${esc(v)}" class="padin ${cls||""}" placeholder="${ph||"－"}">`; }
@@ -586,6 +603,8 @@ function renderEntry(){
   $("rowTitle").textContent="No. "+(sel+1);
   const E=$("entryCard");
   E.querySelector('[data-k="hin"]').value=r.hin; E.querySelector('[data-k="name"]').value=r.name;
+  { let bb=$("banBar"); if(!bb){ bb=document.createElement("div"); bb.id="banBar"; bb.className="banbar"; E.querySelector(".entry-head").after(bb); }
+    bb.hidden=!drumBanned(r); if(drumBanned(r)) bb.innerHTML=`⚠ ${esc(r.hin)} はドラムショット使用禁止です（ダコンが増えているため）。エプロンショットを使ってください<small>Tidak boleh Drum Shot — pakai Apron Shot</small>`; }
   const cp=!r.hin&&carryFrom(sel); E.querySelector('[data-k="hin"]').placeholder=cp?`前回：${isSeki(cp.hin)?"セキ":cp.hin}（入力を始めると引き継ぎ）`:"数文字打つと候補が出ます";
   E.querySelector('[data-k="name"]').placeholder=cp?(cp.name||""):"マスターから自動"; if(typeof ZLink!=="undefined") ZLink.renderHin();
   $("hinStat").className="hint "+(r.hin&&!r.ok&&!isSeki(r.hin)&&MIDX.length?"warn":""); $("hinStat").textContent=r.hin?(isSeki(r.hin)?"セキ（堰）":(r.ok?"✓ マスター登録あり":(MIDX.length?"マスターにない品番です（品名を手で入れてください）":""))):"";
@@ -675,6 +694,7 @@ const PADL={pal:["パレットNo","Palet No",false],t1:["初（投射時間・�
 $("eqTabs").addEventListener("click",async e=>{ const b=e.target.closest("[data-eq]"); if(!b||b.dataset.eq===state.equip) return;
   try{ await Sync.flush(); }catch(x){} load(state.date,b.dataset.eq); sel=firstOpen(); renderAll(); Sync.pull(); P2.refresh(); toast(state.equip+" に切りかえました"); window.scrollTo({top:0,behavior:"smooth"}); });
 function firstOpen(){ const i=state.rows.findIndex(r=>!rowHas(r)); return Math.max(0,i); }
+$("banOk").onclick=()=>$("dlgBan").close();
 $("chips").addEventListener("click",e=>{ const b=e.target.closest(".chip"); if(b) selectRow(+b.dataset.i); });
 $("tbody").addEventListener("click",e=>{ const tr=e.target.closest("tr[data-i]"); if(tr){ selectRow(+tr.dataset.i); $("entryCard").scrollIntoView({behavior:"smooth",block:"start"}); } });
 $("btnPrev").onclick=()=>selectRow(sel-1);
@@ -691,7 +711,8 @@ function showSugg(q){ const list=suggest(q); sugg={list,act:0};
   if(!list.length){ hideSugg(); return; }
   suggBox.innerHTML=`<div class="hd">この品番ですか？ <span style="font-weight:normal">Apakah nomor ini?</span></div>`+list.map((m,x)=>`<button data-pick="${x}" class="${x===0?"act":""}"><b>${esc(m.hin)}</b>　${esc(m.name||"")}</button>`).join(""); suggBox.hidden=false; }
 function hideSugg(){ suggBox.hidden=true; suggBox.innerHTML=""; sugg={list:[],act:0}; }
-function setHin(i,hin,m){ const r=state.rows[i]; r.hin=hin; if(m){ r.hin=m.hin; r.name=m.name||""; r.ok=true; } else { r.ok=false; if(isSeki(hin)){ r.hin="セキ"; r.name=""; } }
+const BAN_SHOWN=new WeakMap();
+function setHin(i,hin,m){ const r=state.rows[i]; setTimeout(()=>{ if(drumBanned(r)&&BAN_SHOWN.get(r)!==normHin(r.hin)){ BAN_SHOWN.set(r,normHin(r.hin)); banWarn(r); } },0); r.hin=hin; if(m){ r.hin=m.hin; r.name=m.name||""; r.ok=true; } else { r.ok=false; if(isSeki(hin)){ r.hin="セキ"; r.name=""; } }
   if(!r.km) r.kubun=autoKubun(r); rowStart(i); if(state.equip==="ドラムショット"&&r.hin&&!isSeki(r.hin)){ const m2=LS.get(APP+":to2",{}), n=normHin(r.hin); if(n in m2) r.to2=!!m2[n]; } autoPal(i); touchRow(i); }
 function pickMaster(m){ if(!m) return; setHin(sel,m.hin,m); hideSugg(); renderEntry(); refreshLight(); }
 hinInp.addEventListener("input",()=>{ if(VIEW) return; const r=state.rows[sel]; r.hin=hinInp.value; const m=mFind(r.hin); r.ok=!!m; if(m) r.name=m.name||r.name; if(!r.km) r.kubun=autoKubun(r); touchRow(sel); showSugg(r.hin); refreshLight(); });
@@ -892,7 +913,7 @@ function buildNippoSheet(){
   let y=5;
   ["No","品番","品名","区分","ロット","パレットNo","開始時刻","初","再","再々","電流","補充後","作業者"].forEach((t,i)=>S.set(i,y,t,H)); y++;
   state.rows.forEach((r,i)=>{ if(!rowHas(r)) return; const k=kubunOf(r), J=j=>j==="ng"?NG:(j==="warn"?WN:B);
-    S.set(0,y,i+1,B); S.set(1,y,r.hin,BL); S.set(2,y,r.name,B); S.set(3,y,(k?KL[k]:"")+(P2?P2.text(r):"")+mixText(r),B); S.set(4,y,r.lot,B); S.set(5,y,r.pal,B); S.set(6,y,r.st,B);
+    S.set(0,y,i+1,B); S.set(1,y,r.hin+(drumBanned(r)?"（ドラム使用禁止）":""),drumBanned(r)?NG:BL); S.set(2,y,r.name,B); S.set(3,y,(k?KL[k]:"")+(P2?P2.text(r):"")+mixText(r),B); S.set(4,y,r.lot,B); S.set(5,y,r.pal,B); S.set(6,y,r.st,B);
     S.set(7,y,r.t1,J(jT1(r))); S.set(8,y,r.t2,J(jRe(r,"t2"))); S.set(9,y,r.t3,J(jRe(r,"t3"))); S.set(10,y,r.amp,J(jAmp(r))); S.set(11,y,r.ampR,J(r.ampR?jAmpR(r):"")); S.set(12,y,r.worker,B); y++; });
   y++;
   S.merge(0,y,3,y,"ショット玉投入回数",H); S.merge(4,y,5,y,state.balls||0,B); S.merge(6,y,8,y,talley(state.balls)||"",B); y+=2;
